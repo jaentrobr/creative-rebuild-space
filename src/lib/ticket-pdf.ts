@@ -1,7 +1,14 @@
-import type { DemoTicket } from "@/data/account";
-import type { EventItem } from "@/data/events";
+import type { Tables } from "@/integrations/meu-supabase/types";
 
-export async function downloadTicketPdf(ticket: DemoTicket, event: EventItem) {
+const statusLabel: Record<string, string> = {
+  valid: "Válido",
+  used: "Utilizado",
+  transferred: "Transferido",
+  refunded: "Reembolsado",
+  canceled: "Cancelado",
+};
+
+export async function downloadTicketPdf(ticket: Tables<"tickets">, event: Tables<"events">) {
   const [{ jsPDF }, QRCode] = await Promise.all([import("jspdf"), import("qrcode")]);
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "A5" });
   const width = doc.internal.pageSize.getWidth();
@@ -20,14 +27,15 @@ export async function downloadTicketPdf(ticket: DemoTicket, event: EventItem) {
   doc.setTextColor(23, 23, 23);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text(event.name, margin, y, { maxWidth: width - margin * 2 });
-  y += doc.getTextDimensions(event.name, { maxWidth: width - margin * 2 }).h + 4;
+  doc.text(event.title, margin, y, { maxWidth: width - margin * 2 });
+  y += doc.getTextDimensions(event.title, { maxWidth: width - margin * 2 }).h + 4;
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text(`${event.date} · ${event.time}`, margin, y);
+  const startsAt = event.starts_at ? new Date(event.starts_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Data a confirmar";
+  doc.text(startsAt, margin, y);
   y += 6;
-  doc.text(`${event.venue}, ${event.city}`, margin, y);
+  doc.text(`${event.venue_name ?? ""}${event.city ? `, ${event.city}` : ""}`, margin, y);
   y += 10;
 
   doc.setFontSize(10);
@@ -35,21 +43,21 @@ export async function downloadTicketPdf(ticket: DemoTicket, event: EventItem) {
   doc.text("Titular", margin, y);
   y += 5;
   doc.setFont("helvetica", "normal");
-  doc.text(`${ticket.holder} · ${ticket.holderDoc}`, margin, y);
+  doc.text(`${ticket.holder_name}${ticket.holder_cpf ? ` · ${ticket.holder_cpf}` : ""}`, margin, y);
   y += 8;
 
   doc.setFont("helvetica", "bold");
   doc.text("Ingresso", margin, y);
   y += 5;
   doc.setFont("helvetica", "normal");
-  doc.text(`${ticket.type} · ${ticket.lot}`, margin, y);
+  doc.text(ticket.is_half_price ? "Meia-entrada" : "Inteira", margin, y);
   y += 6;
-  doc.text(`Status: ${ticket.status}`, margin, y);
+  doc.text(`Status: ${statusLabel[ticket.status] ?? ticket.status}`, margin, y);
   y += 6;
-  doc.text(`Código: ${ticket.code}`, margin, y);
+  doc.text(`Código: ${ticket.qr_token}`, margin, y);
   y += 12;
 
-  const qrDataUrl = await QRCode.toDataURL(ticket.code, { width: 160, margin: 1, color: { dark: "#171717", light: "#ffffff" } });
+  const qrDataUrl = await QRCode.toDataURL(ticket.qr_token, { width: 160, margin: 1, color: { dark: "#171717", light: "#ffffff" } });
   const qrSize = 50;
   const x = (width - qrSize) / 2;
   doc.addImage(qrDataUrl, "PNG", x, y, qrSize, qrSize);
@@ -61,5 +69,5 @@ export async function downloadTicketPdf(ticket: DemoTicket, event: EventItem) {
   const footer = "Apresente este QR code na portaria. Em caso de meia-entrada, leve o documento comprovante.";
   doc.text(footer, margin, y, { maxWidth: width - margin * 2 });
 
-  doc.save(`ingresso-${ticket.code}.pdf`);
+  doc.save(`ingresso-${ticket.qr_token}.pdf`);
 }

@@ -1,11 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Check } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { demoUser } from "@/data/account";
+import { RequireAuth } from "@/components/require-auth";
+import { useAuth } from "@/lib/auth";
+import { db } from "@/integrations/meu-supabase/client";
+import { maskCpf, maskPhone } from "@/lib/format";
 
 export const Route = createFileRoute("/minha-conta")({
   head: () => ({
@@ -18,16 +22,98 @@ export const Route = createFileRoute("/minha-conta")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: AccountPage,
+  component: () => (
+    <RequireAuth>
+      <AccountPage />
+    </RequireAuth>
+  ),
 });
 
+function mapAuthError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("should be different")) return "A nova senha deve ser diferente da atual.";
+  if (normalized.includes("password")) return "A senha não atende aos requisitos mínimos (mínimo 6 caracteres).";
+  return "Não foi possível concluir. Tente novamente em instantes.";
+}
+
 function AccountPage() {
+  const { user, profile, refresh, signOut } = useAuth();
+  const navigate = useNavigate();
   const [saved, setSaved] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [emailNotif, setEmailNotif] = useState(true);
   const [smsNotif, setSmsNotif] = useState(false);
-  const save = (message: string) => (event: React.FormEvent) => {
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  useEffect(() => {
+    if (!profile) return;
+    setName(profile.full_name ?? "");
+    setPhone(profile.phone ? maskPhone(profile.phone) : "");
+    setEmailNotif(profile.notify_email ?? true);
+    setSmsNotif(profile.notify_sms ?? false);
+  }, [profile]);
+
+  const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
-    setSaved(message);
+    if (!user) return;
+    setSavingProfile(true);
+    const { error } = await db
+      .from("profiles")
+      .upsert({ id: user.id, full_name: name, phone: phone.replace(/\D/g, "") || null });
+    setSavingProfile(false);
+    if (error) {
+      toast.error("Não foi possível salvar seus dados. Tente novamente.");
+      return;
+    }
+    await refresh();
+    setSaved("Dados salvos com sucesso.");
+    toast.success("Dados atualizados.");
+  };
+
+  const changePassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setPasswordError("");
+    if (newPassword.length < 6) {
+      setPasswordError("A nova senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("As senhas não são iguais.");
+      return;
+    }
+    setSavingPassword(true);
+    const { error } = await db.auth.updateUser({ password: newPassword });
+    setSavingPassword(false);
+    if (error) {
+      setPasswordError(mapAuthError(error.message));
+      return;
+    }
+    setNewPassword("");
+    setConfirmPassword("");
+    setSaved("Senha alterada com sucesso.");
+    toast.success("Senha alterada.");
+  };
+
+  const toggleNotif = async (field: "notify_email" | "notify_sms", value: boolean) => {
+    if (!user) return;
+    if (field === "notify_email") setEmailNotif(value);
+    else setSmsNotif(value);
+    const { error } = await db.from("profiles").upsert({ id: user.id, [field]: value });
+    if (error) {
+      toast.error("Não foi possível salvar sua preferência.");
+      return;
+    }
+    await refresh();
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    void navigate({ to: "/" });
   };
 
   return (
@@ -35,33 +121,47 @@ function AccountPage() {
       <h1 className="text-4xl font-bold sm:text-5xl">Minha conta</h1>
       {saved && <p className="mt-5 flex items-center gap-2 rounded-xl bg-secondary p-4 font-bold"><Check className="text-primary" /> {saved}</p>}
 
-      <form onSubmit={save("Dados salvos na simulação.")} className="mt-7 grid gap-4 rounded-xl border border-border p-5">
+      <form onSubmit={saveProfile} className="mt-7 grid gap-4 rounded-xl border border-border p-5">
         <h2 className="text-2xl font-bold">Dados pessoais</h2>
-        <label className="grid gap-1 text-sm font-semibold">Nome<Input defaultValue={demoUser.name} /></label>
-        <label className="grid gap-1 text-sm font-semibold">CPF<Input value={demoUser.cpf} disabled readOnly /><span className="text-xs font-normal text-muted-foreground">O CPF não pode ser alterado.</span></label>
-        <label className="grid gap-1 text-sm font-semibold">E-mail<Input type="email" defaultValue={demoUser.email} /></label>
-        <label className="grid gap-1 text-sm font-semibold">Celular<Input defaultValue={demoUser.phone} /></label>
-        <Button type="submit" className="justify-self-start">Salvar dados</Button>
+        <label className="grid gap-1 text-sm font-semibold">Nome<Input value={name} onChange={(e) => setName(e.target.value)} required /></label>
+        <label className="grid gap-1 text-sm font-semibold">
+          CPF<Input value={profile?.cpf ? maskCpf(profile.cpf) : "Não informado"} disabled readOnly />
+          <span className="text-xs font-normal text-muted-foreground">O CPF não pode ser alterado.</span>
+        </label>
+        <label className="grid gap-1 text-sm font-semibold">
+          E-mail<Input type="email" value={user?.email ?? ""} disabled readOnly />
+          <span className="text-xs font-normal text-muted-foreground">A troca de e-mail ainda não está disponível.</span>
+        </label>
+        <label className="grid gap-1 text-sm font-semibold">Celular<Input value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} /></label>
+        <Button type="submit" className="justify-self-start" disabled={savingProfile}>
+          {savingProfile ? <Loader2 className="size-4 animate-spin" /> : "Salvar dados"}
+        </Button>
       </form>
 
-      <form onSubmit={save("Senha alterada na simulação.")} className="mt-5 grid gap-4 rounded-xl border border-border p-5">
+      <form onSubmit={changePassword} className="mt-5 grid gap-4 rounded-xl border border-border p-5">
         <h2 className="text-2xl font-bold">Alterar senha</h2>
-        <Input type="password" placeholder="Senha atual" required />
-        <Input type="password" placeholder="Nova senha" required />
-        <Input type="password" placeholder="Confirmar nova senha" required />
-        <Button type="submit" variant="outline" className="justify-self-start">Alterar senha</Button>
+        <Input type="password" placeholder="Nova senha" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+        <Input type="password" placeholder="Confirmar nova senha" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+        {passwordError && <p className="text-sm font-semibold text-destructive">{passwordError}</p>}
+        <Button type="submit" variant="outline" className="justify-self-start" disabled={savingPassword}>
+          {savingPassword ? <Loader2 className="size-4 animate-spin" /> : "Alterar senha"}
+        </Button>
       </form>
 
       <div className="mt-5 grid gap-4 rounded-xl border border-border p-5">
         <h2 className="text-2xl font-bold">Notificações</h2>
         <label className="flex items-center justify-between gap-4 text-sm font-semibold">
           Avisos por e-mail
-          <Switch checked={emailNotif} onCheckedChange={setEmailNotif} />
+          <Switch checked={emailNotif} onCheckedChange={(value) => void toggleNotif("notify_email", value)} />
         </label>
         <label className="flex items-center justify-between gap-4 text-sm font-semibold">
           Avisos por SMS
-          <Switch checked={smsNotif} onCheckedChange={setSmsNotif} />
+          <Switch checked={smsNotif} onCheckedChange={(value) => void toggleNotif("notify_sms", value)} />
         </label>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-border p-5">
+        <Button type="button" variant="ghost" onClick={handleSignOut}>Sair da conta</Button>
       </div>
     </PageShell>
   );

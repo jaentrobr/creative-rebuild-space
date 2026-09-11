@@ -1,15 +1,9 @@
 import { useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
-import { cities, dateFilters, genreFilters, priceFilters, type EventFilterState } from "@/data/events";
+import { dateFilters, priceFilters, type EventFilterState } from "@/data/events";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-const quickChips = [
-  { id: "hoje", label: "Hoje", kind: "when" as const },
-  { id: "fds", label: "Fim de semana", kind: "when" as const },
-  ...["Funk", "Sertanejo", "Eletrônica", "Pagode", "Rap/Trap", "Open bar", "Universitária"].map((genre) => ({ id: genre, label: genre, kind: "genre" as const })),
-];
 
 function Chip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
   return (
@@ -23,10 +17,28 @@ function Chip({ active, children, onClick }: { active: boolean; children: React.
   );
 }
 
-export function FilterBar({ state, onChange, resultCount }: { state: EventFilterState; onChange: (next: EventFilterState) => void; resultCount: number }) {
+export function FilterBar({
+  state,
+  onChange,
+  resultCount,
+  cities,
+  genres,
+}: {
+  state: EventFilterState;
+  onChange: (next: EventFilterState) => void;
+  resultCount: number;
+  cities: string[];
+  genres: string[];
+}) {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
   const activeCount = (state.city ? 1 : 0) + state.genres.length + state.prices.length + (state.when ? 1 : 0);
+
+  const quickChips = [
+    { id: "hoje", label: "Hoje", kind: "when" as const },
+    { id: "fds", label: "Fim de semana", kind: "when" as const },
+    ...genres.map((genre) => ({ id: genre, label: genre, kind: "genre" as const })),
+  ];
 
   const toggleGenre = (genre: string) =>
     onChange({ ...state, genres: state.genres.includes(genre) ? state.genres.filter((item) => item !== genre) : [...state.genres, genre] });
@@ -92,7 +104,7 @@ export function FilterBar({ state, onChange, resultCount }: { state: EventFilter
             <div>
               <p className="mb-2 text-sm font-bold">Gênero</p>
               <div className="flex flex-wrap gap-2">
-                {genreFilters.map((genre) => (
+                {genres.map((genre) => (
                   <Chip key={genre} active={state.genres.includes(genre)} onClick={() => toggleGenre(genre)}>{genre}</Chip>
                 ))}
               </div>

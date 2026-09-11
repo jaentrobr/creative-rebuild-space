@@ -74,7 +74,3 @@ export function PanelListSkeleton({ count = 4 }: { count?: number }) {
     </div>
   );
 }
-
-export function useSimulatedLoading(ms = 800) {
-  return ms;
-}

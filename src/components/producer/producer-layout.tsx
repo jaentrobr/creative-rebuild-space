@@ -19,8 +19,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useProducer } from "@/lib/producer-store";
-import { signOut } from "@/lib/session";
+import { useAuth } from "@/lib/auth";
+import { useProducerEvents } from "@/lib/producer-queries";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -47,12 +47,14 @@ export function ProducerLayout({
   selectedEvent?: string;
   onSelectEvent?: (value: string) => void;
 }) {
-  const { events, profile } = useProducer();
+  const { producer, signOut } = useAuth();
+  const { data: events = [] } = useProducerEvents(producer?.id);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (to: string, exact?: boolean) => (exact ? pathname === to : pathname.startsWith(to));
   const mobileMain = navItems.slice(0, 3);
   const mobileMore = navItems.slice(3);
+  const initials = (producer?.display_name ?? "??").trim().slice(0, 2).toUpperCase();
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -95,7 +97,7 @@ export function ProducerLayout({
                 <SelectContent>
                   <SelectItem value="todos">Todos os eventos</SelectItem>
                   {events.map((event) => (
-                    <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
+                    <SelectItem key={event.id} value={event.id}>{event.title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -105,15 +107,15 @@ export function ProducerLayout({
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label="Conta do produtor"
-                className="grid size-10 place-items-center rounded-full bg-primary font-display text-sm font-extrabold text-primary-foreground"
+                className="grid size-10 place-items-center overflow-hidden rounded-full bg-primary font-display text-sm font-extrabold text-primary-foreground"
               >
-                {profile.logoInitials}
+                {producer?.logo_url ? <img src={producer.logo_url} alt={producer.display_name} className="size-10 object-cover" /> : initials}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem asChild><Link to="/produtor/configuracoes">Configurações</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/produtor/verificacao" search={{ voltar: "" }}>Verificação</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/">Voltar para o site</Link></DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => { signOut(); navigate({ to: "/" }); }}>Sair</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => { void signOut(); void navigate({ to: "/" }); }}>Sair</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -202,11 +204,11 @@ export function PanelCard({ title, action, children, className }: { title?: stri
 
 export function StatusPill({ status }: { status: string }) {
   const tone =
-    status === "Publicado" || status === "Aprovado" || status === "Concluído" || status === "Válido"
+    status === "Publicado" || status === "published" || status === "approved" || status === "Aprovado" || status === "done" || status === "Concluído" || status === "valid" || status === "Válido"
       ? "bg-emerald-100 text-emerald-800"
-      : status === "Rascunho" || status === "Em análise" || status === "Processando"
+      : status === "Rascunho" || status === "draft" || status === "pending" || status === "Em análise" || status === "processing" || status === "Processando" || status === "requested"
         ? "bg-sun/60 text-ink"
-        : status === "Cancelado" || status === "Recusado" || status === "Reembolsado"
+        : status === "Cancelado" || status === "canceled" || status === "rejected" || status === "Recusado" || status === "refunded" || status === "Reembolsado" || status === "failed"
           ? "bg-destructive/15 text-destructive"
           : "bg-muted text-muted-foreground";
   return (
