@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { maskPhone } from "@/lib/format";
 import { producerActions, useProducer } from "@/lib/producer-store";
+import { EMPRESA } from "@/config/empresa";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/produtor/configuracoes")({
   head: () => ({
@@ -24,7 +26,7 @@ export const Route = createFileRoute("/produtor/configuracoes")({
 });
 
 function ProducerSettings() {
-  const { profile, notifications } = useProducer();
+  const { profile, notifications, termsAcceptance } = useProducer();
   const [form, setForm] = useState(profile);
   const [saved, setSaved] = useState(false);
 
@@ -52,6 +54,18 @@ function ProducerSettings() {
             <Label>Chave do mesmo titular do cadastro</Label>
             <Input value={form.pixKey} onChange={(e) => setForm({ ...form, pixKey: e.target.value })} />
             <p className="mt-2 text-xs text-muted-foreground">Só aceitamos chaves no mesmo CPF ou CNPJ da conta verificada.</p>
+          </PanelCard>
+
+          <PanelCard title="Termos do produtor">
+            {termsAcceptance ? (
+              <p className="text-sm text-muted-foreground">
+                Termos aceitos: versão {termsAcceptance.version} em {new Date(termsAcceptance.acceptedAt).toLocaleDateString("pt-BR")} às{" "}
+                {new Date(termsAcceptance.acceptedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Você ainda não aceitou os Termos do produtor (versão {EMPRESA.VERSAO_TERMOS}).</p>
+            )}
+            <Link to="/termos-produtor" className="mt-2 inline-block text-sm font-bold text-primary underline">Termos do produtor</Link>
           </PanelCard>
 
           <PanelCard title="Notificações">

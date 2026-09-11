@@ -27,6 +27,8 @@ import {
 } from "@/data/producer";
 import { brl } from "@/lib/format";
 import { producerActions, useProducer } from "@/lib/producer-store";
+import { EMPRESA } from "@/config/empresa";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import defaultBanner from "@/assets/event-funk.jpg";
 
@@ -71,7 +73,7 @@ const newType = (name = "Pista"): DraftType => ({
 
 function NewEvent() {
   const { editar } = Route.useSearch();
-  const { events, ticketTypes, verification } = useProducer();
+  const { events, ticketTypes, verification, termsAcceptance } = useProducer();
   const navigate = useNavigate();
   const editing = events.find((event) => event.id === editar);
 
@@ -79,6 +81,8 @@ function NewEvent() {
   const [saved, setSaved] = useState("");
   const [published, setPublished] = useState<ProducerEvent | null>(null);
   const [verifyModal, setVerifyModal] = useState(false);
+  const [termsModal, setTermsModal] = useState(false);
+  const [termsChecked, setTermsChecked] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const [info, setInfo] = useState({
@@ -212,16 +216,33 @@ function NewEvent() {
     setTimeout(() => setSaved(""), 3000);
   };
 
+  const termsPending = termsAcceptance?.version !== EMPRESA.VERSAO_TERMOS;
+
   const publish = () => {
     if (!isFreeOnly && verification !== "Aprovado") {
       setVerifyModal(true);
       return;
     }
+    if (termsPending) {
+      setTermsChecked(false);
+      setTermsModal(true);
+      return;
+    }
+    doPublish();
+  };
+
+  const acceptAndPublish = () => {
+    producerActions.acceptProducerTerms(EMPRESA.VERSAO_TERMOS);
+    setTermsModal(false);
+    doPublish();
+  };
+
+  function doPublish() {
     const event = buildEvent("Publicado");
     if (editing) producerActions.updateEvent(editing.id, event);
     else producerActions.addEvent(event, buildTypes());
     setPublished(event);
-  };
+  }
 
   const eventUrl = published ? `https://jaentro.com.br/evento/${published.slug}` : "";
 
@@ -491,6 +512,32 @@ function NewEvent() {
         <Button variant="outline" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>Voltar</Button>
         {step < 4 ? <Button onClick={() => setStep((s) => Math.min(4, s + 1))}>Continuar</Button> : null}
       </div>
+
+      <Dialog open={termsModal} onOpenChange={setTermsModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Termos do produtor</DialogTitle>
+            <DialogDescription>Antes de publicar seu primeiro evento, confirme que você está de acordo com os pontos abaixo.</DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+            <li>A Entrô não recebe nem guarda o dinheiro das vendas.</li>
+            <li>O repasse acontece em até 48 horas úteis após o evento.</li>
+            <li>10% das vendas no cartão ficam retidos para cobrir contestações.</li>
+            <li>Reembolsos e chargebacks são de responsabilidade do produtor.</li>
+            <li>Depois de pedir adiantamento, não é possível cancelar o evento sem devolver os valores.</li>
+          </ul>
+          <a href="/termos-produtor" target="_blank" rel="noreferrer" className="text-sm font-bold text-primary underline">
+            Ler os Termos do produtor na íntegra
+          </a>
+          <label className="flex items-start gap-3 text-sm font-semibold">
+            <Checkbox checked={termsChecked} onCheckedChange={(checked) => setTermsChecked(checked === true)} />
+            Li e aceito os Termos do produtor (versão {EMPRESA.VERSAO_TERMOS})
+          </label>
+          <DialogFooter>
+            <Button disabled={!termsChecked} onClick={acceptAndPublish}>Aceitar e publicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={verifyModal} onOpenChange={setVerifyModal}>
         <DialogContent>
