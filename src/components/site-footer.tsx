@@ -14,7 +14,7 @@ export function SiteFooter() {
         </div>
         <div>
           <p className="mb-3 font-display text-lg font-extrabold">Descubra</p>
-          <nav className="grid content-start gap-3 text-sm text-primary-foreground/80">
+          <nav className="grid content-start gap-3 text-sm font-bold text-primary-foreground/80">
             <Link to="/eventos" search={eventsSearch()}>Todos os eventos</Link>
             <Link to="/produtores">Para produtores</Link>
             <Link to="/meus-ingressos">Meus ingressos</Link>
