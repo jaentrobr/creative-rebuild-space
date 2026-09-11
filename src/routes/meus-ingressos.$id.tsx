@@ -132,7 +132,46 @@ function useRescheduleChoice(ticketId: string, enabled: boolean) {
 function TicketDetail() {
   const { id } = Route.useParams();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: ticket, isLoading, isError } = useTicketDetail(id, user?.id);
+  const [confirmRefundOpen, setConfirmRefundOpen] = useState(false);
+
+  const event = ticket?.events ?? null;
+  const isRescheduled = (event?.reschedule_count ?? 0) >= 1;
+  const hasNotStarted = event?.starts_at ? new Date(event.starts_at).getTime() >= Date.now() : false;
+  const showRescheduleBlock = ticket?.status === "valid" && isRescheduled && hasNotStarted;
+
+  const { data: lastReschedule } = useLastReschedule(event?.id, showRescheduleBlock);
+  const { data: choice } = useRescheduleChoice(id, showRescheduleBlock);
+
+  const chooseMutation = useMutation({
+    mutationFn: async (choiceValue: "keep" | "refund") => {
+      const { data, error } = await db.rpc("choose_reschedule_option", {
+        p_ticket_id: id,
+        p_choice: choiceValue,
+      });
+      if (error) throw error;
+      return data as unknown as { choice: string; refund_amount: number };
+    },
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ["ticket-reschedule-choice", id] });
+      void queryClient.invalidateQueries({ queryKey: ["my-ticket", id, user?.id] });
+      void queryClient.invalidateQueries({ queryKey: ["my-tickets", user?.id] });
+      if (data.choice === "refund") {
+        toast.success(
+          data.refund_amount > 0
+            ? `Reembolso de ${brl(Number(data.refund_amount))} solicitado`
+            : "Ingresso cancelado",
+        );
+      } else {
+        toast.success("Você manteve seu ingresso");
+      }
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error(translateRescheduleError(message));
+    },
+  });
 
   if (isLoading) {
     return (
@@ -162,7 +201,6 @@ function TicketDetail() {
     );
   }
 
-  const event = ticket.events;
   const active = ticket.status === "valid";
   const startsAt = event.starts_at ? new Date(event.starts_at) : null;
 
