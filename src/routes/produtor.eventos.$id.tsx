@@ -360,12 +360,23 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
             <SelectItem value="nao">Só inteira</SelectItem>
           </SelectContent>
         </Select>
+        {showChoice ? (
+          <Select value={choiceFilter} onValueChange={setChoiceFilter}>
+            <SelectTrigger aria-label="Após alteração"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Após alteração: todos</SelectItem>
+              <SelectItem value="keep">Manteve</SelectItem>
+              <SelectItem value="refund">Reembolso</SelectItem>
+              <SelectItem value="pending">Sem resposta</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
       </div>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="text-xs uppercase text-muted-foreground">
-            <tr>{["Nome", "CPF", "Tipo / lote", "Pagamento", "Status", "Check-in"].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr>
+            <tr>{["Nome", "CPF", "Tipo / lote", "Pagamento", "Status", "Check-in", ...(showChoice ? ["Após alteração"] : [])].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr>
           </thead>
           <tbody>
             {list.slice(0, 60).map((p) => (
@@ -379,6 +390,7 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
                 <td className="py-2 pr-3">{p.payment}{p.installments > 1 ? ` ${p.installments}x` : ""}</td>
                 <td className="py-2 pr-3"><StatusPill status={p.status} /></td>
                 <td className="py-2 pr-3">{p.checkedIn ? "Feito" : "Pendente"}</td>
+                {showChoice ? <td className="py-2 pr-3">{CHOICE_LABELS[choiceOf(p.id)] ?? "Sem resposta"}</td> : null}
               </tr>
             ))}
           </tbody>
