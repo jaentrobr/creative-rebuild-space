@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Instagram, Mail } from "lucide-react";
 import logo from "@/assets/entro-logo.png.asset.json";
 import { eventsSearch } from "@/lib/events-search";
+import { LINHA_EMPRESA } from "@/config/empresa";
 
 export function SiteFooter() {
   return (
@@ -25,6 +26,7 @@ export function SiteFooter() {
             <Link to="/ajuda">Central de ajuda</Link>
             <Link to="/termos">Termos de uso</Link>
             <Link to="/privacidade">Política de privacidade</Link>
+            <Link to="/termos-produtor">Termos do produtor</Link>
           </nav>
         </div>
         <div>
@@ -38,6 +40,9 @@ export function SiteFooter() {
             </a>
           </div>
         </div>
+      </div>
+      <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">
+        <p className="text-xs text-primary-foreground/60">{LINHA_EMPRESA}</p>
       </div>
     </footer>
   );

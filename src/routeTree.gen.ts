@@ -24,6 +24,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProdutorRouteImport } from './routes/produtor'
 import { Route as ProdutoresRouteImport } from './routes/produtores'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as TermosProdutorRouteImport } from './routes/termos-produtor'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminEquipeRouteImport } from './routes/admin.equipe'
@@ -117,6 +118,11 @@ const ProdutoresRoute = ProdutoresRouteImport.update({
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosProdutorRoute = TermosProdutorRouteImport.update({
+  id: '/termos-produtor',
+  path: '/termos-produtor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/produtor': typeof ProdutorRouteWithChildren
   '/produtores': typeof ProdutoresRoute
   '/termos': typeof TermosRoute
+  '/termos-produtor': typeof TermosProdutorRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/equipe': typeof AdminEquipeRoute
   '/admin/eventos': typeof AdminEventosRoute
@@ -264,6 +271,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/produtores': typeof ProdutoresRoute
   '/termos': typeof TermosRoute
+  '/termos-produtor': typeof TermosProdutorRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/equipe': typeof AdminEquipeRoute
   '/admin/eventos': typeof AdminEventosRoute
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/produtor': typeof ProdutorRouteWithChildren
   '/produtores': typeof ProdutoresRoute
   '/termos': typeof TermosRoute
+  '/termos-produtor': typeof TermosProdutorRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/equipe': typeof AdminEquipeRoute
   '/admin/eventos': typeof AdminEventosRoute
@@ -339,6 +348,7 @@ export interface FileRouteTypes {
     | '/produtor'
     | '/produtores'
     | '/termos'
+    | '/termos-produtor'
     | '/admin/configuracoes'
     | '/admin/equipe'
     | '/admin/eventos'
@@ -372,6 +382,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/produtores'
     | '/termos'
+    | '/termos-produtor'
     | '/admin/configuracoes'
     | '/admin/equipe'
     | '/admin/eventos'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/produtor'
     | '/produtores'
     | '/termos'
+    | '/termos-produtor'
     | '/admin/configuracoes'
     | '/admin/equipe'
     | '/admin/eventos'
@@ -445,6 +457,7 @@ export interface RootRouteChildren {
   ProdutorRoute: typeof ProdutorRouteWithChildren
   ProdutoresRoute: typeof ProdutoresRoute
   TermosRoute: typeof TermosRoute
+  TermosProdutorRoute: typeof TermosProdutorRoute
   EventoSlugRoute: typeof EventoSlugRoute
 }
 
@@ -553,6 +566,13 @@ declare module '@tanstack/react-router' {
       path: '/termos'
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos-produtor': {
+      id: '/termos-produtor'
+      path: '/termos-produtor'
+      fullPath: '/termos-produtor'
+      preLoaderRoute: typeof TermosProdutorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -771,6 +791,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutorRoute: ProdutorRouteWithChildren,
   ProdutoresRoute: ProdutoresRoute,
   TermosRoute: TermosRoute,
+  TermosProdutorRoute: TermosProdutorRoute,
   EventoSlugRoute: EventoSlugRoute,
 }
 export const routeTree = rootRouteImport

@@ -43,6 +43,8 @@ export type ProducerState = {
   withdrawBlocked: boolean;
   withdrawBlockReason: string;
   advanceLimit: number;
+  /** Aceite dos Termos do produtor (simulado no front). */
+  termsAcceptance: { version: string; acceptedAt: string; ip: string } | null;
 };
 
 let state: ProducerState = {
@@ -68,6 +70,7 @@ let state: ProducerState = {
   withdrawBlocked: false,
   withdrawBlockReason: "",
   advanceLimit: 7400,
+  termsAcceptance: null,
 };
 
 const listeners = new Set<() => void>();
@@ -188,6 +191,15 @@ export const producerActions = {
   },
   updateProfile(patch: Partial<typeof producerProfile>) {
     set({ profile: { ...state.profile, ...patch } });
+  },
+  acceptProducerTerms(version: string) {
+    set({
+      termsAcceptance: {
+        version,
+        acceptedAt: new Date().toISOString(),
+        ip: `189.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+      },
+    });
   },
   updateNotifications(patch: Partial<ProducerState["notifications"]>) {
     set({ notifications: { ...state.notifications, ...patch } });

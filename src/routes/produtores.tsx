@@ -69,7 +69,11 @@ function ProducersPage() {
             );
           })}
         </div>
+        <p className="mt-10 text-sm">
+          <Link to="/termos-produtor" className="font-bold text-primary underline">Termos do produtor</Link>
+        </p>
       </PageShell>
+
       <ProducerCta />
     </>
   );
