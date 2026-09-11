@@ -348,6 +348,8 @@ export const gateActions = {
   },
 
   async processScan(code: string): Promise<ScanResult | null> {
+    const eventId = state.selectedEventId;
+    if (!eventId) return null;
     if (!state.online) {
       const result = classifyLocally(code);
       if (result.kind === "granted" || result.kind === "granted_check_doc") {
