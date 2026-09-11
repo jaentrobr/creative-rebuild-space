@@ -54,6 +54,7 @@ export const termsSections: LegalSection[] = [
     body: [
       "Se um evento for cancelado pelo produtor, o valor pago pelo ingresso é reembolsado integralmente.",
       "Em caso de adiamento, o ingresso permanece válido para a nova data ou pode ser reembolsado conforme as regras informadas pelo produtor.",
+      "Se o evento mudar de data, você será avisado por e-mail e poderá manter o ingresso ou pedir reembolso integral até o início do evento na nova data. Se não escolher, seu ingresso continua válido.",
     ],
   },
   {
