@@ -33,7 +33,7 @@ export const Route = createFileRoute("/cadastro")({
   component: SignupPage,
 });
 
-type Step = 1 | 2 | 3 | 4 | "done";
+type Step = 1 | 2 | 3 | "done";
 
 /** Traduz os erros mais comuns do Supabase Auth para português. */
 function mapAuthError(message: string): string {
@@ -69,7 +69,6 @@ function SignupPage() {
     name: "",
     email: "",
     password: "",
-    phone: "",
     birth: "",
     cpf: "",
     acceptedTerms: false,
@@ -82,7 +81,7 @@ function SignupPage() {
   const rules = passwordRules(form.password);
   const strength = passwordStrength(form.password);
   const step1Valid = form.name.trim().length >= 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) && Object.values(rules).every(Boolean) && form.acceptedTerms;
-  const step4Valid = validateDate(form.birth) && validateCpf(form.cpf);
+  const step3Valid = validateDate(form.birth) && validateCpf(form.cpf);
 
   const redirectTo = () => {
     if (search.redirect === "/checkout" && search.event && search.total) {
@@ -114,11 +113,9 @@ function SignupPage() {
       const { error: profileError } = await db.from("profiles").upsert({
         id: userId,
         full_name: form.name,
-        phone: form.phone.replace(/\D/g, "") || null,
         cpf: form.cpf.replace(/\D/g, "") || null,
         birth_date: toIsoDate(form.birth),
         notify_email: true,
-        notify_sms: false,
         onboarding_completed_at: new Date().toISOString(),
       });
       if (profileError) {
@@ -129,9 +126,8 @@ function SignupPage() {
       window.setTimeout(redirectTo, 2000);
     } else {
       // Confirmação de e-mail habilitada: ainda não há sessão para gravar o perfil
-      // (a RLS de profiles exige um usuário autenticado). O restante dos dados
-      // (telefone, CPF, nascimento) deverá ser preenchido em "Minha conta" após
-      // a confirmação do e-mail.
+      // (a RLS de profiles exige um usuário autenticado). CPF e data de nascimento
+      // deverão ser preenchidos em "Minha conta" após a confirmação do e-mail.
       setLoading(false);
       setPendingEmailConfirmation(true);
       setStep("done");
