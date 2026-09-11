@@ -6,7 +6,7 @@ export const termsSections: LegalSection[] = [
   {
     title: "1. Cadastro",
     body: [
-      "Para comprar ingressos ou criar eventos na Entrô é necessário criar uma conta com nome, e-mail, celular, CPF e data de nascimento.",
+      "Para comprar ingressos ou criar eventos na Entrô é necessário criar uma conta com nome, e-mail, CPF e data de nascimento.",
       "Você é responsável por manter seus dados de acesso em sigilo e por todas as atividades realizadas na sua conta.",
     ],
   },
@@ -75,7 +75,8 @@ export const privacySections: LegalSection[] = [
   {
     title: "1. Dados coletados",
     body: [
-      "Coletamos nome completo, e-mail, celular, CPF e data de nascimento no momento do cadastro, além de dados de uso da plataforma.",
+      "Coletamos nome completo, e-mail, CPF e data de nascimento no momento do cadastro, além de dados de uso da plataforma.",
+      "Produtores informam também um celular de contato durante a verificação da conta, usado apenas para falarmos sobre a conta.",
     ],
   },
   {
