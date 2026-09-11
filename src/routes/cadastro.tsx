@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProducerCta } from "@/components/producer-cta";
 import { db } from "@/integrations/meu-supabase/client";
-import { maskCpf, maskDate, maskPhone, passwordRules, passwordStrength, validateCpf, validateDate } from "@/lib/format";
+import { maskCpf, maskDate, passwordRules, passwordStrength, validateCpf, validateDate } from "@/lib/format";
 
 const signupSchema = z.object({
   redirect: z.string().optional().catch("/"),
@@ -213,7 +213,7 @@ function SignupPage() {
                 <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: maskCpf(e.target.value) })} placeholder="CPF" maxLength={14} />
                 {form.cpf.length === 14 && !validateCpf(form.cpf) && <p className="text-xs font-semibold text-destructive">CPF inválido. Confira os números.</p>}
                 {error && <p className="text-center text-sm font-semibold text-destructive">{error}</p>}
-                <Button type="submit" disabled={!step4Valid || loading}>
+                <Button type="submit" disabled={!step3Valid || loading}>
                   {loading ? <Loader2 className="size-4 animate-spin" /> : "Concluir cadastro"}
                 </Button>
               </form>
