@@ -35,6 +35,9 @@ function Verification() {
   const { voltar } = Route.useSearch();
   const { verification, verificationReason } = useProducer();
   const navigate = useNavigate();
+  const { producer } = useAuth();
+  const { data: producerPrivate } = useProducerPrivate(producer?.id);
+  const savePrivate = useUpsertProducerPrivate(producer?.id);
   const [step, setStep] = useState(0);
   const [personType, setPersonType] = useState<"fisica" | "juridica">("juridica");
   const [pf, setPf] = useState({ name: "", cpf: "", birth: "", income: "", cep: "", address: "", number: "", city: "", state: "" });
