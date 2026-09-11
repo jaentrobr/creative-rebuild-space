@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout, PanelCard, StatusPill } from "@/components/admin/admin-layout";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,21 +14,85 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/error-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { cities, genres, producerById } from "@/data/admin";
+import { toast } from "sonner";
+import { db } from "@/integrations/meu-supabase/client";
+import type { Enums, Tables } from "@/integrations/meu-supabase/types";
+import { useAuth } from "@/lib/auth";
+import { EVENT_STATUS_LABELS, logAudit } from "@/lib/admin-store";
 import { brl, intBr, shortDateTime } from "@/lib/format";
-import { adminActions, useAdmin } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin/eventos")({
   head: () => ({ meta: [{ title: "Eventos — Admin Entrô" }, { name: "robots", content: "noindex, nofollow" }] }),
   component: AdminEvents,
 });
 
+type EventRow = Tables<"events"> & { producers: { display_name: string } | null };
+
+function useEvents() {
+  return useQuery({
+    queryKey: ["admin-events"],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("events")
+        .select("*, producers(display_name)")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      const events = (data ?? []) as unknown as EventRow[];
+      const ids = events.map((e) => e.id);
+      let lots: Tables<"lots">[] = [];
+      let orders: { event_id: string; total: number }[] = [];
+      if (ids.length > 0) {
+        const [lotsRes, ordersRes] = await Promise.all([
+          db.from("lots").select("*").in("event_id", ids),
+          db.from("orders").select("event_id, total").eq("status", "paid").in("event_id", ids),
+        ]);
+        if (lotsRes.error) throw lotsRes.error;
+        if (ordersRes.error) throw ordersRes.error;
+        lots = lotsRes.data ?? [];
+        orders = ordersRes.data ?? [];
+      }
+      const capacityByEvent = new Map<string, number>();
+      const soldByEvent = new Map<string, number>();
+      for (const l of lots) {
+        capacityByEvent.set(l.event_id, (capacityByEvent.get(l.event_id) ?? 0) + l.quantity);
+        soldByEvent.set(l.event_id, (soldByEvent.get(l.event_id) ?? 0) + l.sold_count);
+      }
+      const volumeByEvent = new Map<string, number>();
+      for (const o of orders) volumeByEvent.set(o.event_id, (volumeByEvent.get(o.event_id) ?? 0) + Number(o.total));
+
+      return events.map((e) => ({
+        ...e,
+        capacity: capacityByEvent.get(e.id) ?? 0,
+        sold: soldByEvent.get(e.id) ?? 0,
+        volume: volumeByEvent.get(e.id) ?? 0,
+      }));
+    },
+  });
+}
+
+function useProducersList() {
+  return useQuery({
+    queryKey: ["admin-producers-list"],
+    queryFn: async () => {
+      const { data, error } = await db.from("producers").select("id, display_name").order("display_name").limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 function AdminEvents() {
-  const { events, producers } = useAdmin();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const eventsQuery = useEvents();
+  const producersQuery = useProducersList();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("todos");
   const [city, setCity] = useState("todas");
@@ -36,29 +101,70 @@ function AdminEvents() {
   const [suspendId, setSuspendId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
 
+  const cities = useMemo(() => Array.from(new Set((eventsQuery.data ?? []).map((e) => e.city).filter((c): c is string => !!c))).sort(), [eventsQuery.data]);
+  const genres = useMemo(() => Array.from(new Set((eventsQuery.data ?? []).map((e) => e.genre).filter((g): g is string => !!g))).sort(), [eventsQuery.data]);
+
   const filtered = useMemo(
     () =>
-      events.filter(
+      (eventsQuery.data ?? []).filter(
         (e) =>
-          (search.trim() === "" || e.name.toLowerCase().includes(search.toLowerCase())) &&
+          (search.trim() === "" || e.title.toLowerCase().includes(search.toLowerCase())) &&
           (status === "todos" || e.status === status) &&
           (city === "todas" || e.city === city) &&
           (genre === "todos" || e.genre === genre) &&
-          (producer === "todos" || e.producerId === producer),
+          (producer === "todos" || e.producer_id === producer),
       ),
-    [events, search, status, city, genre, producer],
+    [eventsQuery.data, search, status, city, genre, producer],
   );
 
+  const toggleFeatured = async (e: Tables<"events">) => {
+    try {
+      const { error } = await db.from("events").update({ is_featured: !e.is_featured }).eq("id", e.id);
+      if (error) throw error;
+      await logAudit({ actorId: user?.id ?? null, action: e.is_featured ? "unfeature_event" : "feature_event", entity: "events", entityId: e.id });
+      qc.invalidateQueries({ queryKey: ["admin-events"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível atualizar o destaque.");
+    }
+  };
+
+  const suspendEvent = async () => {
+    if (!suspendId) return;
+    try {
+      const { error } = await db.from("events").update({ status: "suspended", suspended_reason: reason.trim() }).eq("id", suspendId);
+      if (error) throw error;
+      await logAudit({ actorId: user?.id ?? null, action: "suspend_event", entity: "events", entityId: suspendId, details: { reason: reason.trim() } });
+      toast.success("Evento suspenso.");
+      setReason("");
+      setSuspendId(null);
+      qc.invalidateQueries({ queryKey: ["admin-events"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível suspender o evento.");
+    }
+  };
+
+  const unsuspendEvent = async (e: Tables<"events">) => {
+    try {
+      const { error } = await db.from("events").update({ status: "published", suspended_reason: null }).eq("id", e.id);
+      if (error) throw error;
+      await logAudit({ actorId: user?.id ?? null, action: "unsuspend_event", entity: "events", entityId: e.id });
+      toast.success("Evento reativado.");
+      qc.invalidateQueries({ queryKey: ["admin-events"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível reativar o evento.");
+    }
+  };
+
   return (
-    <AdminLayout title="Eventos" description="Todos os eventos publicados na Entrô.">
+    <AdminLayout title="Eventos" description="Todos os eventos cadastrados na Entrô.">
       <div className="mb-4 flex flex-wrap gap-3">
         <Input placeholder="Buscar por nome" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-64" />
-        <div className="w-40">
+        <div className="w-44">
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger aria-label="Filtrar por status"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
-              {["Rascunho", "Publicado", "Encerrado", "Cancelado", "Suspenso"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {Object.entries(EVENT_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -85,49 +191,55 @@ function AdminEvents() {
             <SelectTrigger aria-label="Filtrar por produtor"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os produtores</SelectItem>
-              {producers.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              {(producersQuery.data ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.display_name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <PanelCard>
-        <div className="space-y-3">
-          {filtered.map((e) => (
-            <div key={e.id} className="rounded-xl border border-border p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-display text-base font-extrabold">{e.name}</p>
-                <div className="flex flex-wrap gap-1">
-                  {e.featured ? <Badge className="bg-sun text-ink">Destaque</Badge> : null}
-                  <StatusPill status={e.status} />
+      {eventsQuery.isError ? (
+        <ErrorState description="Não conseguimos carregar os eventos." onRetry={() => eventsQuery.refetch()} />
+      ) : eventsQuery.isLoading || !eventsQuery.data ? (
+        <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}</div>
+      ) : (
+        <PanelCard>
+          <div className="space-y-3">
+            {filtered.map((e) => (
+              <div key={e.id} className="rounded-xl border border-border p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-display text-base font-extrabold">{e.title}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {e.is_featured ? <Badge className="bg-sun text-ink">Destaque</Badge> : null}
+                    <StatusPill status={e.status} />
+                  </div>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {e.genre ?? "—"} · {e.city ?? "—"} · {e.producers?.display_name ?? "—"} · {e.starts_at ? shortDateTime(e.starts_at) : "sem data"}
+                </p>
+                <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                  <p>Ingressos vendidos: <span className="font-semibold text-foreground">{intBr(e.sold)}/{intBr(e.capacity)}</span></p>
+                  <p>Volume pago: <span className="font-semibold text-foreground">{brl(e.volume)}</span></p>
+                  {e.status === "suspended" ? <p>Motivo: <span className="font-semibold text-foreground">{e.suspended_reason ?? "—"}</span></p> : <p />}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to="/evento/$slug" params={{ slug: e.slug }} search={{ ref: "" }} target="_blank">Ver como comprador</Link>
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => toggleFeatured(e)}>
+                    {e.is_featured ? "Remover destaque" : "Destacar na página inicial"}
+                  </Button>
+                  {e.status === "suspended" ? (
+                    <Button size="sm" onClick={() => unsuspendEvent(e)}>Reativar evento</Button>
+                  ) : (
+                    <Button size="sm" variant="destructive" onClick={() => setSuspendId(e.id)}>Suspender evento</Button>
+                  )}
                 </div>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {e.genre} · {e.city} · {producerById(e.producerId)?.name ?? "—"} · {shortDateTime(e.startAt)}
-              </p>
-              <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
-                <p>Ingressos vendidos: <span className="font-semibold text-foreground">{intBr(e.ticketsSold)}/{intBr(e.capacity)}</span></p>
-                <p>Volume: <span className="font-semibold text-foreground">{brl(e.volume)}</span></p>
-                {e.status === "Suspenso" ? <p>Motivo: <span className="font-semibold text-foreground">{e.suspendReason}</span></p> : <p />}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" asChild>
-                  <Link to="/evento/$slug" params={{ slug: e.slug }} search={{ ref: "" }} target="_blank">Ver como comprador</Link>
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => adminActions.toggleFeatured(e.id)}>
-                  {e.featured ? "Remover destaque" : "Destacar na página inicial"}
-                </Button>
-                {e.status === "Suspenso" ? (
-                  <Button size="sm" onClick={() => adminActions.unsuspendEvent(e.id)}>Reativar evento</Button>
-                ) : (
-                  <Button size="sm" variant="destructive" onClick={() => setSuspendId(e.id)}>Suspender evento</Button>
-                )}
-              </div>
-            </div>
-          ))}
-          {filtered.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento encontrado.</p> : null}
-        </div>
-      </PanelCard>
+            ))}
+            {filtered.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento encontrado.</p> : null}
+          </div>
+        </PanelCard>
+      )}
 
       <AlertDialog open={!!suspendId} onOpenChange={(open) => !open && setSuspendId(null)}>
         <AlertDialogContent>
@@ -141,14 +253,7 @@ function AdminEvents() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={!reason.trim()}
-              onClick={() => {
-                if (suspendId) adminActions.suspendEvent(suspendId, reason.trim());
-                setReason("");
-                setSuspendId(null);
-              }}
-            >
+            <AlertDialogAction disabled={!reason.trim()} onClick={suspendEvent}>
               Suspender
             </AlertDialogAction>
           </AlertDialogFooter>
