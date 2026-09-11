@@ -26,7 +26,7 @@ export function useBecomeProducer() {
   return useMutation({
     mutationFn: async (displayName: string) => {
       const { data, error } = await db.rpc("become_producer", { p_display_name: displayName });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data;
     },
     onSuccess: async () => {
@@ -47,7 +47,7 @@ export function useUpdateProducer(producerId: string | undefined) {
         .eq("id", producerId)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data;
     },
     onSuccess: async () => {
@@ -104,7 +104,7 @@ export function useProducerEvents(producerId: string | undefined) {
         .select("*")
         .eq("producer_id", producerId as string)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as EventRow[];
     },
     enabled: !!producerId,
@@ -120,7 +120,7 @@ export function useEvent(eventId: string | undefined) {
         .select("*")
         .eq("id", eventId as string)
         .maybeSingle();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as EventRow | null;
     },
     enabled: !!eventId,
@@ -136,7 +136,7 @@ export function useEventTicketTypes(eventId: string | undefined) {
         .select("*, lots(*)")
         .eq("event_id", eventId as string)
         .order("sort_order", { ascending: true });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as unknown as (TicketTypeRow & { lots: LotRow[] })[];
     },
     enabled: !!eventId,
@@ -162,7 +162,7 @@ async function generateUniqueSlug(title: string, ignoreEventId?: string) {
     let query = db.from("events").select("id").eq("slug", candidate).limit(1);
     if (ignoreEventId) query = query.neq("id", ignoreEventId);
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) throw new Error(friendlyError(error));
     if (!data || data.length === 0) return candidate;
     candidate = `${base}-${Math.random().toString(36).slice(2, 6)}`;
   }
@@ -182,7 +182,7 @@ export function useCreateEvent(producerId: string | undefined) {
         .insert({ ...input, producer_id: producerId, slug })
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as EventRow;
     },
     onSuccess: async () => {
@@ -206,7 +206,7 @@ export function useUpdateEvent(eventId: string | undefined, producerId: string |
         .eq("id", eventId)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as EventRow;
     },
     onSuccess: async () => {
@@ -229,7 +229,7 @@ export function useTicketTypeMutations(eventId: string | undefined) {
         .insert({ ...input, event_id: eventId })
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as TicketTypeRow;
     },
     onSuccess: invalidate,
@@ -243,7 +243,7 @@ export function useTicketTypeMutations(eventId: string | undefined) {
         .eq("id", id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as TicketTypeRow;
     },
     onSuccess: invalidate,
@@ -252,7 +252,7 @@ export function useTicketTypeMutations(eventId: string | undefined) {
   const deleteTicketType = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await db.from("ticket_types").delete().eq("id", id);
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
     },
     onSuccess: invalidate,
   });
@@ -260,7 +260,7 @@ export function useTicketTypeMutations(eventId: string | undefined) {
   const createLot = useMutation({
     mutationFn: async (input: TablesInsert<"lots">) => {
       const { data, error } = await db.from("lots").insert(input).select().single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as LotRow;
     },
     onSuccess: invalidate,
@@ -269,7 +269,7 @@ export function useTicketTypeMutations(eventId: string | undefined) {
   const updateLot = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: TablesUpdate<"lots"> }) => {
       const { data, error } = await db.from("lots").update(patch).eq("id", id).select().single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as LotRow;
     },
     onSuccess: invalidate,
@@ -278,7 +278,7 @@ export function useTicketTypeMutations(eventId: string | undefined) {
   const deleteLot = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await db.from("lots").delete().eq("id", id);
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
     },
     onSuccess: invalidate,
   });
@@ -297,7 +297,7 @@ export function usePlatformSettings() {
         .select("*")
         .eq("id", 1)
         .maybeSingle();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as PlatformSettingsRow | null;
     },
   });
@@ -315,7 +315,7 @@ export function useProducerTermsAcceptance(userId: string | undefined) {
         .order("accepted_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as TermsAcceptanceRow | null;
     },
     enabled: !!userId,
@@ -337,7 +337,7 @@ export function useAcceptProducerTerms(userId: string | undefined) {
         })
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as TermsAcceptanceRow;
     },
     onSuccess: async () => {
@@ -357,7 +357,7 @@ export function useProducerPrivate(producerId: string | undefined) {
         .select("*")
         .eq("producer_id", producerId as string)
         .maybeSingle();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as ProducerPrivateRow | null;
     },
     enabled: !!producerId,
@@ -374,7 +374,7 @@ export function useUpsertProducerPrivate(producerId: string | undefined) {
         .upsert({ ...patch, producer_id: producerId }, { onConflict: "producer_id" })
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as ProducerPrivateRow;
     },
     onSuccess: async () => {
@@ -394,7 +394,7 @@ export function useCoupons(eventId: string | undefined) {
         .select("*")
         .eq("event_id", eventId as string)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as CouponRow[];
     },
     enabled: !!eventId,
@@ -413,7 +413,7 @@ export function useCouponMutations(eventId: string | undefined) {
         .insert({ ...input, event_id: eventId })
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as CouponRow;
     },
     onSuccess: invalidate,
@@ -421,7 +421,7 @@ export function useCouponMutations(eventId: string | undefined) {
   const toggle = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const { error } = await db.from("coupons").update({ is_active: isActive }).eq("id", id);
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
     },
     onSuccess: invalidate,
   });
@@ -437,7 +437,7 @@ export function usePromoters(eventId: string | undefined) {
         .select("*")
         .eq("event_id", eventId as string)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as PromoterRow[];
     },
     enabled: !!eventId,
@@ -456,7 +456,7 @@ export function usePromoterMutations(eventId: string | undefined) {
         .insert({ ...input, event_id: eventId })
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as PromoterRow;
     },
     onSuccess: invalidate,
@@ -467,7 +467,7 @@ export function usePromoterMutations(eventId: string | undefined) {
         .from("promoters")
         .update({ commission_paid_at: new Date().toISOString() })
         .eq("id", id);
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
     },
     onSuccess: invalidate,
   });
@@ -483,7 +483,7 @@ export function useEventStaff(eventId: string | undefined) {
         .select("*")
         .eq("event_id", eventId as string)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as EventStaffRow[];
     },
     enabled: !!eventId,
@@ -498,7 +498,7 @@ export function useEventParticipants(eventId: string | undefined) {
       const { data, error } = await db.rpc("get_event_participants", {
         p_event_id: eventId as string,
       });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return (Array.isArray(data) ? data : []) as Record<string, unknown>[];
     },
     enabled: !!eventId,
@@ -516,7 +516,7 @@ export function usePayouts(producerId: string | undefined) {
         .select("*")
         .eq("producer_id", producerId as string)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as PayoutRow[];
     },
     enabled: !!producerId,
@@ -532,7 +532,7 @@ export function useAdvances(producerId: string | undefined) {
         .select("*")
         .eq("producer_id", producerId as string)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as AdvanceRow[];
     },
     enabled: !!producerId,
@@ -549,7 +549,7 @@ export function useProducerRefunds(eventIds: string[]) {
         .select("*")
         .in("event_id", eventIds)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) throw new Error(friendlyError(error));
       return data as RefundRow[];
     },
     enabled: eventIds.length > 0,

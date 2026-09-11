@@ -39,6 +39,7 @@ type GateState = {
   loginError: string;
   logoutBlocked: string;
   history: HistoryEntry[];
+  isSyncing: boolean;
 };
 
 let state: GateState = {
@@ -57,6 +58,7 @@ let state: GateState = {
   loginError: "",
   logoutBlocked: "",
   history: [],
+  isSyncing: false,
 };
 
 const listeners = new Set<() => void>();
@@ -149,6 +151,18 @@ async function idbClear(store: string): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+/** Limpa toda a base local da portaria (fila offline e cache de participantes). */
+export async function clearGateIndexedDb(): Promise<void> {
+  try {
+    await idbClear("pending");
+    await idbClear("participants");
+  } catch {
+    // ambiente sem IndexedDB (SSR) — nada a fazer
+  }
+}
+
+const scanningInFlight = new Set<string>();
 
 function classifyLocally(qrToken: string): ScanResult {
   const participant = state.participants.find((p) => p.qrToken === qrToken);

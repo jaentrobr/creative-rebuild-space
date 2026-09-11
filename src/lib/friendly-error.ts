@@ -21,7 +21,10 @@ const DB_MAP: Array<[RegExp, string]> = [
   [/value too long/i, "Um dos textos ficou longo demais. Reduza e tente de novo."],
 ];
 
-type MaybeError = { message?: string | null; code?: string | null } | null | undefined;
+type MaybeError =
+  | { message?: string | null | undefined; code?: string | null | undefined }
+  | null
+  | undefined;
 
 export function friendlyError(error: MaybeError, fallback = "Não foi possível concluir agora. Tente de novo."): string {
   const message = error?.message ?? "";
