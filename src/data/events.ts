@@ -1,5 +1,6 @@
 import placeholderImage from "@/assets/event-electronic.jpg";
 import { lowestPrice, type PublicEvent } from "@/lib/queries";
+import { safeImageSrc } from "@/lib/safe-url";
 
 export type { PublicEvent };
 
@@ -50,7 +51,7 @@ export function eventFullDate(event: PublicEvent): string {
 }
 
 export function eventImage(event: PublicEvent): string {
-  return event.banner_url || placeholderImage;
+  return safeImageSrc(event.banner_url) ?? placeholderImage;
 }
 
 export function eventPrice(event: PublicEvent): number | null {

@@ -13,6 +13,7 @@ import {
 import { ADMIN_ROLES, useAuth } from "@/lib/auth";
 import { useSession } from "@/lib/session";
 import { eventsSearch } from "@/lib/events-search";
+import { safeImageSrc } from "@/lib/safe-url";
 
 function getInitials(name: string | null | undefined, email: string | null | undefined) {
   const source = name?.trim() || email?.trim() || "";
@@ -79,8 +80,8 @@ export function SiteHeader() {
                   className="grid size-10 place-items-center overflow-hidden rounded-full bg-primary font-display text-sm font-extrabold text-primary-foreground"
                   aria-label="Minha conta"
                 >
-                  {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="size-full object-cover" />
+                  {safeImageSrc(profile?.avatar_url) ? (
+                    <img src={safeImageSrc(profile?.avatar_url)} alt="" className="size-full object-cover" />
                   ) : (
                     getInitials(profile?.full_name, profile?.email ?? session?.user.email)
                   )}

@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { EMPRESA, aplicarDadosEmpresa } from "@/config/empresa";
 import termosRaw from "@/content/termos-produtor.md?raw";
+import { EXTERNAL_LINK_PROPS, safeContentHref } from "@/lib/safe-url";
 
 export const Route = createFileRoute("/termos-produtor")({
   head: () => ({
