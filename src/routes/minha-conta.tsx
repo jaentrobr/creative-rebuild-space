@@ -10,7 +10,7 @@ import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/integrations/meu-supabase/client";
 import type { TablesInsert } from "@/integrations/meu-supabase/types";
-import { maskCpf, maskPhone } from "@/lib/format";
+import { maskCpf } from "@/lib/format";
 
 export const Route = createFileRoute("/minha-conta")({
   head: () => ({
@@ -42,9 +42,7 @@ function AccountPage() {
   const navigate = useNavigate();
   const [saved, setSaved] = useState("");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [emailNotif, setEmailNotif] = useState(true);
-  const [smsNotif, setSmsNotif] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -54,9 +52,7 @@ function AccountPage() {
   useEffect(() => {
     if (!profile) return;
     setName(profile.full_name ?? "");
-    setPhone(profile.phone ? maskPhone(profile.phone) : "");
     setEmailNotif(profile.notify_email ?? true);
-    setSmsNotif(profile.notify_sms ?? false);
   }, [profile]);
 
   const saveProfile = async (event: React.FormEvent) => {
@@ -66,7 +62,6 @@ function AccountPage() {
     const payload: TablesInsert<"profiles"> = {
       id: user.id,
       full_name: name,
-      phone: phone.replace(/\D/g, "") || null,
     };
     const { error } = await db.from("profiles").upsert(payload);
     setSavingProfile(false);
@@ -103,14 +98,10 @@ function AccountPage() {
     toast.success("Senha alterada.");
   };
 
-  const toggleNotif = async (field: "notify_email" | "notify_sms", value: boolean) => {
+  const toggleNotif = async (value: boolean) => {
     if (!user) return;
-    if (field === "notify_email") setEmailNotif(value);
-    else setSmsNotif(value);
-    const payload: TablesInsert<"profiles"> =
-      field === "notify_email"
-        ? { id: user.id, notify_email: value }
-        : { id: user.id, notify_sms: value };
+    setEmailNotif(value);
+    const payload: TablesInsert<"profiles"> = { id: user.id, notify_email: value };
     const { error } = await db.from("profiles").upsert(payload);
     if (error) {
       toast.error("Não foi possível salvar sua preferência.");
@@ -140,7 +131,7 @@ function AccountPage() {
           E-mail<Input type="email" value={user?.email ?? ""} disabled readOnly />
           <span className="text-xs font-normal text-muted-foreground">A troca de e-mail ainda não está disponível.</span>
         </label>
-        <label className="grid gap-1 text-sm font-semibold">Celular<Input value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} /></label>
+        
         <Button type="submit" className="justify-self-start" disabled={savingProfile}>
           {savingProfile ? <Loader2 className="size-4 animate-spin" /> : "Salvar dados"}
         </Button>
@@ -160,11 +151,7 @@ function AccountPage() {
         <h2 className="text-2xl font-bold">Notificações</h2>
         <label className="flex items-center justify-between gap-4 text-sm font-semibold">
           Avisos por e-mail
-          <Switch checked={emailNotif} onCheckedChange={(value) => void toggleNotif("notify_email", value)} />
-        </label>
-        <label className="flex items-center justify-between gap-4 text-sm font-semibold">
-          Avisos por SMS
-          <Switch checked={smsNotif} onCheckedChange={(value) => void toggleNotif("notify_sms", value)} />
+          <Switch checked={emailNotif} onCheckedChange={(value) => void toggleNotif(value)} />
         </label>
       </div>
 
