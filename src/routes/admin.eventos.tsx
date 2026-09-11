@@ -94,6 +94,31 @@ function useProducersList() {
   });
 }
 
+
+type RescheduleSummary = { keep_count: number; refund_count: number; pending_count: number };
+
+function useEventReschedules(eventId: string | null) {
+  return useQuery({
+    queryKey: ["admin-event-reschedules", eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const [historyRes, summaryRes] = await Promise.all([
+        db
+          .from("event_reschedules")
+          .select("*")
+          .eq("event_id", eventId as string)
+          .order("created_at", { ascending: false }),
+        db.rpc("get_reschedule_summary", { p_event_id: eventId as string }),
+      ]);
+      if (historyRes.error) throw historyRes.error;
+      if (summaryRes.error) throw summaryRes.error;
+      const history = (historyRes.data ?? []) as Tables<"event_reschedules">[];
+      const summary = (summaryRes.data ?? null) as unknown as RescheduleSummary | null;
+      return { history, summary };
+    },
+  });
+}
+
 function AdminEvents() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -106,6 +131,7 @@ function AdminEvents() {
   const [producer, setProducer] = useState("todos");
   const [suspendId, setSuspendId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const cities = useMemo(() => Array.from(new Set((eventsQuery.data ?? []).map((e) => e.city).filter((c): c is string => !!c))).sort(), [eventsQuery.data]);
   const genres = useMemo(() => Array.from(new Set((eventsQuery.data ?? []).map((e) => e.genre).filter((g): g is string => !!g))).sort(), [eventsQuery.data]);
@@ -228,6 +254,7 @@ function AdminEvents() {
                   {e.status === "suspended" ? <p>Motivo: <span className="font-semibold text-foreground">{e.suspended_reason ?? "—"}</span></p> : <p />}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setDetailId(e.id)}>Ver detalhes</Button>
                   <Button size="sm" variant="outline" asChild>
                     <Link to="/evento/$slug" params={{ slug: e.slug }} search={{ ref: "" }} target="_blank">Ver como comprador</Link>
                   </Button>
@@ -265,6 +292,76 @@ function AdminEvents() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <EventDetailDialog eventId={detailId} onOpenChange={(open) => !open && setDetailId(null)} />
     </AdminLayout>
+  );
+}
+
+
+function EventDetailDialog({ eventId, onOpenChange }: { eventId: string | null; onOpenChange: (open: boolean) => void }) {
+  const rescheduleQuery = useEventReschedules(eventId);
+
+  return (
+    <Dialog open={!!eventId} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Histórico de alteração de data</DialogTitle>
+        </DialogHeader>
+        {rescheduleQuery.isLoading ? (
+          <Skeleton className="h-24 w-full rounded-xl" />
+        ) : rescheduleQuery.isError ? (
+          <p className="text-sm text-destructive">Não foi possível carregar o histórico de alterações.</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border p-3">
+              <p className="mb-2 text-sm font-bold">Resumo das escolhas do público</p>
+              {rescheduleQuery.data?.summary ? (
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-lg bg-muted p-2">
+                    <p className="text-lg font-extrabold">{intBr(rescheduleQuery.data.summary.keep_count)}</p>
+                    <p className="text-muted-foreground">Mantiveram</p>
+                  </div>
+                  <div className="rounded-lg bg-muted p-2">
+                    <p className="text-lg font-extrabold">{intBr(rescheduleQuery.data.summary.refund_count)}</p>
+                    <p className="text-muted-foreground">Pediram reembolso</p>
+                  </div>
+                  <div className="rounded-lg bg-muted p-2">
+                    <p className="text-lg font-extrabold">{intBr(rescheduleQuery.data.summary.pending_count)}</p>
+                    <p className="text-muted-foreground">Sem resposta</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Este evento nunca teve a data alterada.</p>
+              )}
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm font-bold">Alterações registradas</p>
+              {(rescheduleQuery.data?.history.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma alteração de data registrada.</p>
+              ) : (
+                <div className="space-y-2">
+                  {rescheduleQuery.data?.history.map((r) => (
+                    <div key={r.id} className="rounded-xl border border-border p-3 text-sm">
+                      <p>
+                        <span className="text-muted-foreground">De</span>{" "}
+                        <strong>{r.old_starts_at ? shortDateTime(r.old_starts_at) : "—"}</strong>{" "}
+                        <span className="text-muted-foreground">para</span>{" "}
+                        <strong>{r.new_starts_at ? shortDateTime(r.new_starts_at) : "—"}</strong>
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">Motivo: {r.reason ?? "—"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Avisado em: {r.notified_at ? shortDateTime(r.notified_at) : "Ainda não avisado"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">Registrado em {shortDateTime(r.created_at)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

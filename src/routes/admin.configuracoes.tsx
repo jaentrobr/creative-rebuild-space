@@ -67,6 +67,7 @@ function AdminSettings() {
   const settingsQuery = useSettings();
   const bannersQuery = useBanners();
   const [saving, setSaving] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   const [form, setForm] = useState({
     pixFee: "",
@@ -142,6 +143,20 @@ function AdminSettings() {
       toast.error(e instanceof Error ? e.message : "Não foi possível salvar as configurações.");
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const sendTestEmail = async () => {
+    setSendingTestEmail(true);
+    try {
+      const { data, error } = await db.functions.invoke("send-test-email");
+      if (error) throw error;
+      toast.success(`E-mail de teste enviado. Resposta do Resend: ${JSON.stringify(data)}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível enviar o e-mail de teste.");
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -310,6 +325,13 @@ function AdminSettings() {
           </Button>
         </PanelCard>
       )}
+
+      <PanelCard title="E-mail de teste" className="mt-5">
+        <p className="text-sm text-muted-foreground">Envia um e-mail de teste através do Resend para validar a configuração de disparo.</p>
+        <Button className="mt-3" variant="outline" disabled={sendingTestEmail} onClick={sendTestEmail}>
+          {sendingTestEmail ? "Enviando…" : "Enviar e-mail de teste"}
+        </Button>
+      </PanelCard>
 
       {settingsQuery.data ? (
         <PanelCard title="Filtros do site (visualização)" className="mt-5">

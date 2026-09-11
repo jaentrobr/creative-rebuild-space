@@ -25,6 +25,7 @@ const REFUND_RULE_LABELS: Record<Enums<"refund_rule">, string> = {
   withdrawal_7d: "Arrependimento (7 dias)",
   cancellation_fee: "Cancelamento com taxa",
   event_canceled: "Evento cancelado",
+  event_rescheduled: "Evento com data alterada",
   admin: "Solicitado pelo admin",
 };
 
