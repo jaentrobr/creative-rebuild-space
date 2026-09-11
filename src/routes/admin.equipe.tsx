@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout, PanelCard } from "@/components/admin/admin-layout";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +111,22 @@ function AdminTeam() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("support");
   const [busy, setBusy] = useState(false);
+  const [myMfaEnabled, setMyMfaEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void db.auth.mfa.listFactors().then(({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        setMyMfaEnabled(null);
+        return;
+      }
+      setMyMfaEnabled(data.totp.some((f) => f.status === "verified"));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const [personFilter, setPersonFilter] = useState("todos");
   const [actionFilter, setActionFilter] = useState("todos");
@@ -259,6 +275,20 @@ function AdminTeam() {
                 <div>
                   <p className="font-display text-sm font-extrabold">{u.name}</p>
                   <p className="text-xs text-muted-foreground">{u.email ?? "sem e-mail"}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Verificação em duas etapas:{" "}
+                    {u.userId === user?.id ? (
+                      myMfaEnabled === null ? (
+                        "não disponível"
+                      ) : myMfaEnabled ? (
+                        <span className="font-semibold text-primary">ativa</span>
+                      ) : (
+                        <span className="font-semibold text-destructive">inativa</span>
+                      )
+                    ) : (
+                      "não disponível"
+                    )}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{ROLE_LABELS[u.role]}</Badge>

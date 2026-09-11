@@ -163,11 +163,20 @@ function ProducerTerms() {
                   <strong className="font-bold text-foreground">{children}</strong>
                 ),
                 hr: () => <hr className="border-border" />,
-                a: ({ children, href }) => (
-                  <a href={href} className="font-semibold text-primary underline">
-                    {children}
-                  </a>
-                ),
+                a: ({ children, href }) => {
+                  const safe = safeContentHref(href);
+                  if (!safe) return <span className="font-semibold">{children}</span>;
+                  const external = !safe.startsWith("/");
+                  return (
+                    <a
+                      href={safe}
+                      className="font-semibold text-primary underline"
+                      {...(external ? EXTERNAL_LINK_PROPS : {})}
+                    >
+                      {children}
+                    </a>
+                  );
+                },
                 table: ({ children }) => (
                   <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                     <table className="w-full min-w-[520px] border-collapse text-sm">
