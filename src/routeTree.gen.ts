@@ -10,33 +10,442 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AjudaRouteImport } from './routes/ajuda'
+import { Route as CadastroRouteImport } from './routes/cadastro'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as EntrarRouteImport } from './routes/entrar'
+import { Route as EventosRouteImport } from './routes/eventos'
+import { Route as MeusIngressosRouteImport } from './routes/meus-ingressos'
+import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
+import { Route as MinhaContaRouteImport } from './routes/minha-conta'
+import { Route as PortariaRouteImport } from './routes/portaria'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ProdutorRouteImport } from './routes/produtor'
+import { Route as ProdutoresRouteImport } from './routes/produtores'
+import { Route as TermosRouteImport } from './routes/termos'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
+import { Route as AdminEquipeRouteImport } from './routes/admin.equipe'
+import { Route as AdminEventosRouteImport } from './routes/admin.eventos'
+import { Route as AdminFinanceiroRouteImport } from './routes/admin.financeiro'
+import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminProdutoresRouteImport } from './routes/admin.produtores'
+import { Route as AdminReembolsosRouteImport } from './routes/admin.reembolsos'
+import { Route as EventoSlugRouteImport } from './routes/evento.$slug'
+import { Route as MeusIngressosIndexRouteImport } from './routes/meus-ingressos.index'
+import { Route as MeusIngressosIdRouteImport } from './routes/meus-ingressos.$id'
+import { Route as ProdutorIndexRouteImport } from './routes/produtor.index'
+import { Route as ProdutorConfiguracoesRouteImport } from './routes/produtor.configuracoes'
+import { Route as ProdutorFinanceiroRouteImport } from './routes/produtor.financeiro'
+import { Route as ProdutorReembolsosRouteImport } from './routes/produtor.reembolsos'
+import { Route as ProdutorVerificacaoRouteImport } from './routes/produtor.verificacao'
+import { Route as ProdutorEventosIndexRouteImport } from './routes/produtor.eventos.index'
+import { Route as ProdutorEventosIdRouteImport } from './routes/produtor.eventos.$id'
+import { Route as ProdutorEventosNovoRouteImport } from './routes/produtor.eventos.novo'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AjudaRoute = AjudaRouteImport.update({
+  id: '/ajuda',
+  path: '/ajuda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroRoute = CadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntrarRoute = EntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventosRoute = EventosRouteImport.update({
+  id: '/eventos',
+  path: '/eventos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusIngressosRoute = MeusIngressosRouteImport.update({
+  id: '/meus-ingressos',
+  path: '/meus-ingressos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusPedidosRoute = MeusPedidosRouteImport.update({
+  id: '/meus-pedidos',
+  path: '/meus-pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaContaRoute = MinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortariaRoute = PortariaRouteImport.update({
+  id: '/portaria',
+  path: '/portaria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutorRoute = ProdutorRouteImport.update({
+  id: '/produtor',
+  path: '/produtor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutoresRoute = ProdutoresRouteImport.update({
+  id: '/produtores',
+  path: '/produtores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEquipeRoute = AdminEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEventosRoute = AdminEventosRouteImport.update({
+  id: '/eventos',
+  path: '/eventos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFinanceiroRoute = AdminFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPedidosRoute = AdminPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProdutoresRoute = AdminProdutoresRouteImport.update({
+  id: '/produtores',
+  path: '/produtores',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReembolsosRoute = AdminReembolsosRouteImport.update({
+  id: '/reembolsos',
+  path: '/reembolsos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const EventoSlugRoute = EventoSlugRouteImport.update({
+  id: '/evento/$slug',
+  path: '/evento/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusIngressosIndexRoute = MeusIngressosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MeusIngressosRoute,
+} as any)
+const MeusIngressosIdRoute = MeusIngressosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => MeusIngressosRoute,
+} as any)
+const ProdutorIndexRoute = ProdutorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProdutorRoute,
+} as any)
+const ProdutorConfiguracoesRoute = ProdutorConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => ProdutorRoute,
+} as any)
+const ProdutorFinanceiroRoute = ProdutorFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => ProdutorRoute,
+} as any)
+const ProdutorReembolsosRoute = ProdutorReembolsosRouteImport.update({
+  id: '/reembolsos',
+  path: '/reembolsos',
+  getParentRoute: () => ProdutorRoute,
+} as any)
+const ProdutorVerificacaoRoute = ProdutorVerificacaoRouteImport.update({
+  id: '/verificacao',
+  path: '/verificacao',
+  getParentRoute: () => ProdutorRoute,
+} as any)
+const ProdutorEventosIndexRoute = ProdutorEventosIndexRouteImport.update({
+  id: '/eventos/',
+  path: '/eventos/',
+  getParentRoute: () => ProdutorRoute,
+} as any)
+const ProdutorEventosIdRoute = ProdutorEventosIdRouteImport.update({
+  id: '/eventos/$id',
+  path: '/eventos/$id',
+  getParentRoute: () => ProdutorRoute,
+} as any)
+const ProdutorEventosNovoRoute = ProdutorEventosNovoRouteImport.update({
+  id: '/eventos/novo',
+  path: '/eventos/novo',
+  getParentRoute: () => ProdutorRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/ajuda': typeof AjudaRoute
+  '/cadastro': typeof CadastroRoute
+  '/checkout': typeof CheckoutRoute
+  '/entrar': typeof EntrarRoute
+  '/eventos': typeof EventosRoute
+  '/meus-ingressos': typeof MeusIngressosRouteWithChildren
+  '/meus-pedidos': typeof MeusPedidosRoute
+  '/minha-conta': typeof MinhaContaRoute
+  '/portaria': typeof PortariaRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/produtor': typeof ProdutorRouteWithChildren
+  '/produtores': typeof ProdutoresRoute
+  '/termos': typeof TermosRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/equipe': typeof AdminEquipeRoute
+  '/admin/eventos': typeof AdminEventosRoute
+  '/admin/financeiro': typeof AdminFinanceiroRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtores': typeof AdminProdutoresRoute
+  '/admin/reembolsos': typeof AdminReembolsosRoute
+  '/evento/$slug': typeof EventoSlugRoute
+  '/meus-ingressos/$id': typeof MeusIngressosIdRoute
+  '/produtor/configuracoes': typeof ProdutorConfiguracoesRoute
+  '/produtor/financeiro': typeof ProdutorFinanceiroRoute
+  '/produtor/reembolsos': typeof ProdutorReembolsosRoute
+  '/produtor/verificacao': typeof ProdutorVerificacaoRoute
+  '/admin/': typeof AdminIndexRoute
+  '/meus-ingressos/': typeof MeusIngressosIndexRoute
+  '/produtor/': typeof ProdutorIndexRoute
+  '/produtor/eventos/$id': typeof ProdutorEventosIdRoute
+  '/produtor/eventos/novo': typeof ProdutorEventosNovoRoute
+  '/produtor/eventos/': typeof ProdutorEventosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ajuda': typeof AjudaRoute
+  '/cadastro': typeof CadastroRoute
+  '/checkout': typeof CheckoutRoute
+  '/entrar': typeof EntrarRoute
+  '/eventos': typeof EventosRoute
+  '/meus-pedidos': typeof MeusPedidosRoute
+  '/minha-conta': typeof MinhaContaRoute
+  '/portaria': typeof PortariaRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/produtores': typeof ProdutoresRoute
+  '/termos': typeof TermosRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/equipe': typeof AdminEquipeRoute
+  '/admin/eventos': typeof AdminEventosRoute
+  '/admin/financeiro': typeof AdminFinanceiroRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtores': typeof AdminProdutoresRoute
+  '/admin/reembolsos': typeof AdminReembolsosRoute
+  '/evento/$slug': typeof EventoSlugRoute
+  '/meus-ingressos/$id': typeof MeusIngressosIdRoute
+  '/produtor/configuracoes': typeof ProdutorConfiguracoesRoute
+  '/produtor/financeiro': typeof ProdutorFinanceiroRoute
+  '/produtor/reembolsos': typeof ProdutorReembolsosRoute
+  '/produtor/verificacao': typeof ProdutorVerificacaoRoute
+  '/admin': typeof AdminIndexRoute
+  '/meus-ingressos': typeof MeusIngressosIndexRoute
+  '/produtor': typeof ProdutorIndexRoute
+  '/produtor/eventos/$id': typeof ProdutorEventosIdRoute
+  '/produtor/eventos/novo': typeof ProdutorEventosNovoRoute
+  '/produtor/eventos': typeof ProdutorEventosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/ajuda': typeof AjudaRoute
+  '/cadastro': typeof CadastroRoute
+  '/checkout': typeof CheckoutRoute
+  '/entrar': typeof EntrarRoute
+  '/eventos': typeof EventosRoute
+  '/meus-ingressos': typeof MeusIngressosRouteWithChildren
+  '/meus-pedidos': typeof MeusPedidosRoute
+  '/minha-conta': typeof MinhaContaRoute
+  '/portaria': typeof PortariaRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/produtor': typeof ProdutorRouteWithChildren
+  '/produtores': typeof ProdutoresRoute
+  '/termos': typeof TermosRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/equipe': typeof AdminEquipeRoute
+  '/admin/eventos': typeof AdminEventosRoute
+  '/admin/financeiro': typeof AdminFinanceiroRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtores': typeof AdminProdutoresRoute
+  '/admin/reembolsos': typeof AdminReembolsosRoute
+  '/evento/$slug': typeof EventoSlugRoute
+  '/meus-ingressos/$id': typeof MeusIngressosIdRoute
+  '/produtor/configuracoes': typeof ProdutorConfiguracoesRoute
+  '/produtor/financeiro': typeof ProdutorFinanceiroRoute
+  '/produtor/reembolsos': typeof ProdutorReembolsosRoute
+  '/produtor/verificacao': typeof ProdutorVerificacaoRoute
+  '/admin/': typeof AdminIndexRoute
+  '/meus-ingressos/': typeof MeusIngressosIndexRoute
+  '/produtor/': typeof ProdutorIndexRoute
+  '/produtor/eventos/$id': typeof ProdutorEventosIdRoute
+  '/produtor/eventos/novo': typeof ProdutorEventosNovoRoute
+  '/produtor/eventos/': typeof ProdutorEventosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/ajuda'
+    | '/cadastro'
+    | '/checkout'
+    | '/entrar'
+    | '/eventos'
+    | '/meus-ingressos'
+    | '/meus-pedidos'
+    | '/minha-conta'
+    | '/portaria'
+    | '/privacidade'
+    | '/produtor'
+    | '/produtores'
+    | '/termos'
+    | '/admin/configuracoes'
+    | '/admin/equipe'
+    | '/admin/eventos'
+    | '/admin/financeiro'
+    | '/admin/pedidos'
+    | '/admin/produtores'
+    | '/admin/reembolsos'
+    | '/evento/$slug'
+    | '/meus-ingressos/$id'
+    | '/produtor/configuracoes'
+    | '/produtor/financeiro'
+    | '/produtor/reembolsos'
+    | '/produtor/verificacao'
+    | '/admin/'
+    | '/meus-ingressos/'
+    | '/produtor/'
+    | '/produtor/eventos/$id'
+    | '/produtor/eventos/novo'
+    | '/produtor/eventos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/ajuda'
+    | '/cadastro'
+    | '/checkout'
+    | '/entrar'
+    | '/eventos'
+    | '/meus-pedidos'
+    | '/minha-conta'
+    | '/portaria'
+    | '/privacidade'
+    | '/produtores'
+    | '/termos'
+    | '/admin/configuracoes'
+    | '/admin/equipe'
+    | '/admin/eventos'
+    | '/admin/financeiro'
+    | '/admin/pedidos'
+    | '/admin/produtores'
+    | '/admin/reembolsos'
+    | '/evento/$slug'
+    | '/meus-ingressos/$id'
+    | '/produtor/configuracoes'
+    | '/produtor/financeiro'
+    | '/produtor/reembolsos'
+    | '/produtor/verificacao'
+    | '/admin'
+    | '/meus-ingressos'
+    | '/produtor'
+    | '/produtor/eventos/$id'
+    | '/produtor/eventos/novo'
+    | '/produtor/eventos'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/ajuda'
+    | '/cadastro'
+    | '/checkout'
+    | '/entrar'
+    | '/eventos'
+    | '/meus-ingressos'
+    | '/meus-pedidos'
+    | '/minha-conta'
+    | '/portaria'
+    | '/privacidade'
+    | '/produtor'
+    | '/produtores'
+    | '/termos'
+    | '/admin/configuracoes'
+    | '/admin/equipe'
+    | '/admin/eventos'
+    | '/admin/financeiro'
+    | '/admin/pedidos'
+    | '/admin/produtores'
+    | '/admin/reembolsos'
+    | '/evento/$slug'
+    | '/meus-ingressos/$id'
+    | '/produtor/configuracoes'
+    | '/produtor/financeiro'
+    | '/produtor/reembolsos'
+    | '/produtor/verificacao'
+    | '/admin/'
+    | '/meus-ingressos/'
+    | '/produtor/'
+    | '/produtor/eventos/$id'
+    | '/produtor/eventos/novo'
+    | '/produtor/eventos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  AjudaRoute: typeof AjudaRoute
+  CadastroRoute: typeof CadastroRoute
+  CheckoutRoute: typeof CheckoutRoute
+  EntrarRoute: typeof EntrarRoute
+  EventosRoute: typeof EventosRoute
+  MeusIngressosRoute: typeof MeusIngressosRouteWithChildren
+  MeusPedidosRoute: typeof MeusPedidosRoute
+  MinhaContaRoute: typeof MinhaContaRoute
+  PortariaRoute: typeof PortariaRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  ProdutorRoute: typeof ProdutorRouteWithChildren
+  ProdutoresRoute: typeof ProdutoresRoute
+  TermosRoute: typeof TermosRoute
+  EventoSlugRoute: typeof EventoSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +457,321 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ajuda': {
+      id: '/ajuda'
+      path: '/ajuda'
+      fullPath: '/ajuda'
+      preLoaderRoute: typeof AjudaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro': {
+      id: '/cadastro'
+      path: '/cadastro'
+      fullPath: '/cadastro'
+      preLoaderRoute: typeof CadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entrar': {
+      id: '/entrar'
+      path: '/entrar'
+      fullPath: '/entrar'
+      preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eventos': {
+      id: '/eventos'
+      path: '/eventos'
+      fullPath: '/eventos'
+      preLoaderRoute: typeof EventosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-ingressos': {
+      id: '/meus-ingressos'
+      path: '/meus-ingressos'
+      fullPath: '/meus-ingressos'
+      preLoaderRoute: typeof MeusIngressosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-pedidos': {
+      id: '/meus-pedidos'
+      path: '/meus-pedidos'
+      fullPath: '/meus-pedidos'
+      preLoaderRoute: typeof MeusPedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-conta': {
+      id: '/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof MinhaContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portaria': {
+      id: '/portaria'
+      path: '/portaria'
+      fullPath: '/portaria'
+      preLoaderRoute: typeof PortariaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produtor': {
+      id: '/produtor'
+      path: '/produtor'
+      fullPath: '/produtor'
+      preLoaderRoute: typeof ProdutorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produtores': {
+      id: '/produtores'
+      path: '/produtores'
+      fullPath: '/produtores'
+      preLoaderRoute: typeof ProdutoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/configuracoes': {
+      id: '/admin/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AdminConfiguracoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/equipe': {
+      id: '/admin/equipe'
+      path: '/equipe'
+      fullPath: '/admin/equipe'
+      preLoaderRoute: typeof AdminEquipeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/eventos': {
+      id: '/admin/eventos'
+      path: '/eventos'
+      fullPath: '/admin/eventos'
+      preLoaderRoute: typeof AdminEventosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/financeiro': {
+      id: '/admin/financeiro'
+      path: '/financeiro'
+      fullPath: '/admin/financeiro'
+      preLoaderRoute: typeof AdminFinanceiroRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pedidos': {
+      id: '/admin/pedidos'
+      path: '/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/produtores': {
+      id: '/admin/produtores'
+      path: '/produtores'
+      fullPath: '/admin/produtores'
+      preLoaderRoute: typeof AdminProdutoresRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reembolsos': {
+      id: '/admin/reembolsos'
+      path: '/reembolsos'
+      fullPath: '/admin/reembolsos'
+      preLoaderRoute: typeof AdminReembolsosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/evento/$slug': {
+      id: '/evento/$slug'
+      path: '/evento/$slug'
+      fullPath: '/evento/$slug'
+      preLoaderRoute: typeof EventoSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-ingressos/': {
+      id: '/meus-ingressos/'
+      path: '/'
+      fullPath: '/meus-ingressos/'
+      preLoaderRoute: typeof MeusIngressosIndexRouteImport
+      parentRoute: typeof MeusIngressosRoute
+    }
+    '/meus-ingressos/$id': {
+      id: '/meus-ingressos/$id'
+      path: '/$id'
+      fullPath: '/meus-ingressos/$id'
+      preLoaderRoute: typeof MeusIngressosIdRouteImport
+      parentRoute: typeof MeusIngressosRoute
+    }
+    '/produtor/': {
+      id: '/produtor/'
+      path: '/'
+      fullPath: '/produtor/'
+      preLoaderRoute: typeof ProdutorIndexRouteImport
+      parentRoute: typeof ProdutorRoute
+    }
+    '/produtor/configuracoes': {
+      id: '/produtor/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/produtor/configuracoes'
+      preLoaderRoute: typeof ProdutorConfiguracoesRouteImport
+      parentRoute: typeof ProdutorRoute
+    }
+    '/produtor/financeiro': {
+      id: '/produtor/financeiro'
+      path: '/financeiro'
+      fullPath: '/produtor/financeiro'
+      preLoaderRoute: typeof ProdutorFinanceiroRouteImport
+      parentRoute: typeof ProdutorRoute
+    }
+    '/produtor/reembolsos': {
+      id: '/produtor/reembolsos'
+      path: '/reembolsos'
+      fullPath: '/produtor/reembolsos'
+      preLoaderRoute: typeof ProdutorReembolsosRouteImport
+      parentRoute: typeof ProdutorRoute
+    }
+    '/produtor/verificacao': {
+      id: '/produtor/verificacao'
+      path: '/verificacao'
+      fullPath: '/produtor/verificacao'
+      preLoaderRoute: typeof ProdutorVerificacaoRouteImport
+      parentRoute: typeof ProdutorRoute
+    }
+    '/produtor/eventos/': {
+      id: '/produtor/eventos/'
+      path: '/eventos'
+      fullPath: '/produtor/eventos/'
+      preLoaderRoute: typeof ProdutorEventosIndexRouteImport
+      parentRoute: typeof ProdutorRoute
+    }
+    '/produtor/eventos/$id': {
+      id: '/produtor/eventos/$id'
+      path: '/eventos/$id'
+      fullPath: '/produtor/eventos/$id'
+      preLoaderRoute: typeof ProdutorEventosIdRouteImport
+      parentRoute: typeof ProdutorRoute
+    }
+    '/produtor/eventos/novo': {
+      id: '/produtor/eventos/novo'
+      path: '/eventos/novo'
+      fullPath: '/produtor/eventos/novo'
+      preLoaderRoute: typeof ProdutorEventosNovoRouteImport
+      parentRoute: typeof ProdutorRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminEquipeRoute: typeof AdminEquipeRoute
+  AdminEventosRoute: typeof AdminEventosRoute
+  AdminFinanceiroRoute: typeof AdminFinanceiroRoute
+  AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminProdutoresRoute: typeof AdminProdutoresRoute
+  AdminReembolsosRoute: typeof AdminReembolsosRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminEquipeRoute: AdminEquipeRoute,
+  AdminEventosRoute: AdminEventosRoute,
+  AdminFinanceiroRoute: AdminFinanceiroRoute,
+  AdminPedidosRoute: AdminPedidosRoute,
+  AdminProdutoresRoute: AdminProdutoresRoute,
+  AdminReembolsosRoute: AdminReembolsosRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface MeusIngressosRouteChildren {
+  MeusIngressosIdRoute: typeof MeusIngressosIdRoute
+  MeusIngressosIndexRoute: typeof MeusIngressosIndexRoute
+}
+
+const MeusIngressosRouteChildren: MeusIngressosRouteChildren = {
+  MeusIngressosIdRoute: MeusIngressosIdRoute,
+  MeusIngressosIndexRoute: MeusIngressosIndexRoute,
+}
+
+const MeusIngressosRouteWithChildren = MeusIngressosRoute._addFileChildren(
+  MeusIngressosRouteChildren,
+)
+
+interface ProdutorRouteChildren {
+  ProdutorConfiguracoesRoute: typeof ProdutorConfiguracoesRoute
+  ProdutorFinanceiroRoute: typeof ProdutorFinanceiroRoute
+  ProdutorReembolsosRoute: typeof ProdutorReembolsosRoute
+  ProdutorVerificacaoRoute: typeof ProdutorVerificacaoRoute
+  ProdutorIndexRoute: typeof ProdutorIndexRoute
+  ProdutorEventosIdRoute: typeof ProdutorEventosIdRoute
+  ProdutorEventosNovoRoute: typeof ProdutorEventosNovoRoute
+  ProdutorEventosIndexRoute: typeof ProdutorEventosIndexRoute
+}
+
+const ProdutorRouteChildren: ProdutorRouteChildren = {
+  ProdutorConfiguracoesRoute: ProdutorConfiguracoesRoute,
+  ProdutorFinanceiroRoute: ProdutorFinanceiroRoute,
+  ProdutorReembolsosRoute: ProdutorReembolsosRoute,
+  ProdutorVerificacaoRoute: ProdutorVerificacaoRoute,
+  ProdutorIndexRoute: ProdutorIndexRoute,
+  ProdutorEventosIdRoute: ProdutorEventosIdRoute,
+  ProdutorEventosNovoRoute: ProdutorEventosNovoRoute,
+  ProdutorEventosIndexRoute: ProdutorEventosIndexRoute,
+}
+
+const ProdutorRouteWithChildren = ProdutorRoute._addFileChildren(
+  ProdutorRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  AjudaRoute: AjudaRoute,
+  CadastroRoute: CadastroRoute,
+  CheckoutRoute: CheckoutRoute,
+  EntrarRoute: EntrarRoute,
+  EventosRoute: EventosRoute,
+  MeusIngressosRoute: MeusIngressosRouteWithChildren,
+  MeusPedidosRoute: MeusPedidosRoute,
+  MinhaContaRoute: MinhaContaRoute,
+  PortariaRoute: PortariaRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  ProdutorRoute: ProdutorRouteWithChildren,
+  ProdutoresRoute: ProdutoresRoute,
+  TermosRoute: TermosRoute,
+  EventoSlugRoute: EventoSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

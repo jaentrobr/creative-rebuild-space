@@ -1,0 +1,15 @@
+# Entrô
+- [x] Design system, assets and shared navigation
+- [x] Mock events and reusable discovery components
+- [x] Complete all requested routes and simulated interactions
+- [x] Validate desktop and mobile flows
+- [x] Bricolage Grotesque, site nacional (6 cidades, 24 eventos) e seletor de cidade
+- [x] Novo hero com as ilustrações de desktop e mobile
+- [x] Barra de filtros fixa com gaveta, carrosséis e novas seções da home
+- [x] Rodapé em colunas com ícones; remoções pedidas
+- [x] Área do comprador simulada: ingressos, detalhe com QR, transferência, reembolso, pedidos e conta
+- [x] Login visual com redirect-aware, esqueci senha e cadastro multi-etapas
+- [x] Checkout simulado com Pix/cartão e sucesso
+- [x] PDF de ingresso gerado no navegador com jsPDF + qrcode
+- [x] Texto do checkout ajustado para evitar menção a processador real
+- [x] Painel do produtor simulado: início, eventos, criação em 5 etapas, gerenciamento, financeiro, reembolsos, verificação e configurações
