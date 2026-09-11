@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
-import type { EventItem } from "@/data/events";
+import type { PublicEvent } from "@/lib/queries";
 import { EventCardCompact } from "@/components/event-card";
 import { eventsSearch, type EventsSearch } from "@/lib/events-search";
 
-export function EventCarousel({ title, events, viewAll }: { title: string; events: EventItem[]; viewAll: Partial<EventsSearch> }) {
+export function EventCarousel({ title, events, viewAll }: { title: string; events: PublicEvent[]; viewAll: Partial<EventsSearch> }) {
   if (!events.length) return null;
   return (
     <section className="py-6">

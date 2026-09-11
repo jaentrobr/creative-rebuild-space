@@ -1,6 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  AlertTriangle,
   ArrowLeft,
   CalendarDays,
   LayoutDashboard,
@@ -9,6 +8,7 @@ import {
   ShieldCheck,
   Ticket,
   Undo2,
+  UserCircle2,
   Users,
   Wallet,
 } from "lucide-react";
@@ -20,19 +20,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { adminActions } from "@/lib/admin-store";
+import { useAuth, type AppRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
-  { to: "/admin/produtores", label: "Produtores", icon: Users },
-  { to: "/admin/eventos", label: "Eventos", icon: CalendarDays },
-  { to: "/admin/pedidos", label: "Pedidos", icon: Ticket },
-  { to: "/admin/reembolsos", label: "Reembolsos e chargebacks", short: "Reembolsos", icon: Undo2 },
-  { to: "/admin/financeiro", label: "Financeiro", icon: Wallet },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
-  { to: "/admin/equipe", label: "Equipe", icon: ShieldCheck },
-] as const;
+  { to: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true, roles: ["owner", "finance", "support"] },
+  { to: "/admin/produtores", label: "Produtores", icon: Users, roles: ["owner", "finance", "support"] },
+  { to: "/admin/eventos", label: "Eventos", icon: CalendarDays, roles: ["owner", "finance", "support"] },
+  { to: "/admin/pedidos", label: "Pedidos", icon: Ticket, roles: ["owner", "finance", "support"] },
+  { to: "/admin/reembolsos", label: "Reembolsos e chargebacks", short: "Reembolsos", icon: Undo2, roles: ["owner", "finance", "support"] },
+  { to: "/admin/financeiro", label: "Financeiro", icon: Wallet, roles: ["owner", "finance"] },
+  { to: "/admin/configuracoes", label: "Configurações", icon: Settings, roles: ["owner"] },
+  { to: "/admin/equipe", label: "Equipe", icon: ShieldCheck, roles: ["owner"] },
+] as const satisfies ReadonlyArray<{ to: string; label: string; short?: string; icon: typeof LayoutDashboard; exact?: boolean; roles: AppRole[] }>;
 
 export function AdminLayout({
   title,
@@ -46,10 +46,18 @@ export function AdminLayout({
   children: ReactNode;
 }) {
   const navigate = useNavigate();
+  const { roles, profile, user, signOut } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (to: string, exact?: boolean) => (exact ? pathname === to : pathname.startsWith(to));
-  const mobileMain = navItems.slice(0, 3);
-  const mobileMore = navItems.slice(3);
+
+  const visible = navItems.filter((item) => item.roles.some((r) => roles.includes(r)));
+  const mobileMain = visible.slice(0, 3);
+  const mobileMore = visible.slice(3);
+
+  const doSignOut = async () => {
+    await signOut();
+    navigate({ to: "/" });
+  };
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -59,7 +67,7 @@ export function AdminLayout({
           <span className="rounded-md bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">Admin</span>
         </Link>
         <nav className="flex flex-1 flex-col gap-1">
-          {navItems.map((item) => (
+          {visible.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -76,10 +84,7 @@ export function AdminLayout({
           ))}
         </nav>
         <button
-          onClick={() => {
-            adminActions.signOut();
-            navigate({ to: "/admin" });
-          }}
+          onClick={doSignOut}
           className="mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> Sair do admin
@@ -93,24 +98,22 @@ export function AdminLayout({
             <span className="rounded-md bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">Admin</span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
+            <span className="hidden text-sm font-semibold text-muted-foreground sm:inline">
+              {profile?.full_name ?? user?.email}
+            </span>
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label="Conta do admin"
                 className="grid size-10 place-items-center rounded-full bg-destructive font-display text-sm font-extrabold text-destructive-foreground"
               >
-                <AlertTriangle className="size-5" />
+                <UserCircle2 className="size-5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem asChild><Link to="/admin/configuracoes">Configurações</Link></DropdownMenuItem>
+                {roles.includes("owner") ? (
+                  <DropdownMenuItem asChild><Link to="/admin/configuracoes">Configurações</Link></DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem asChild><Link to="/">Voltar para o site</Link></DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    adminActions.signOut();
-                    navigate({ to: "/admin" });
-                  }}
-                >
-                  Sair
-                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={doSignOut}>Sair</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

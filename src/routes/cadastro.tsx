@@ -1,13 +1,13 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { ArrowLeft, Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { OTPInput } from "@/components/ui/otp-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProducerCta } from "@/components/producer-cta";
-import { signIn } from "@/lib/session";
+import { db } from "@/integrations/meu-supabase/client";
 import { maskCpf, maskDate, maskPhone, passwordRules, passwordStrength, validateCpf, validateDate } from "@/lib/format";
 
 const signupSchema = z.object({
@@ -35,6 +35,23 @@ export const Route = createFileRoute("/cadastro")({
 
 type Step = 1 | 2 | 3 | 4 | "done";
 
+/** Traduz os erros mais comuns do Supabase Auth para português. */
+function mapAuthError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("already registered") || normalized.includes("already exists") || normalized.includes("user already"))
+    return "Já existe uma conta com esse e-mail. Tente entrar.";
+  if (normalized.includes("password")) return "A senha não atende aos requisitos mínimos.";
+  if (normalized.includes("rate limit")) return "Muitas tentativas. Aguarde um momento e tente de novo.";
+  return "Não foi possível concluir o cadastro. Tente novamente em instantes.";
+}
+
+/** Converte DD/MM/AAAA em AAAA-MM-DD para gravar no banco. */
+function toIsoDate(value: string): string | null {
+  const [day, month, year] = value.split("/");
+  if (!day || !month || !year) return null;
+  return `${year}-${month}-${day}`;
+}
+
 function SignupPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
@@ -58,17 +75,9 @@ function SignupPage() {
     acceptedTerms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [code, setCode] = useState("");
-  const [phoneCode, setPhoneCode] = useState("");
-  const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const id = window.setInterval(() => setCountdown((c) => c - 1), 1000);
-    return () => window.clearInterval(id);
-  }, [countdown]);
+  const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState(false);
 
   const rules = passwordRules(form.password);
   const strength = passwordStrength(form.password);
@@ -83,23 +92,60 @@ function SignupPage() {
     }
   };
 
+  const finishSignup = async () => {
+    setLoading(true);
+    setError("");
+    const { data, error: signUpError } = await db.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: { full_name: form.name },
+      },
+    });
+    if (signUpError) {
+      setLoading(false);
+      setError(mapAuthError(signUpError.message));
+      return;
+    }
+
+    const userId = data.user?.id;
+    if (data.session && userId) {
+      const { error: profileError } = await db.from("profiles").upsert({
+        id: userId,
+        full_name: form.name,
+        phone: form.phone.replace(/\D/g, "") || null,
+        cpf: form.cpf.replace(/\D/g, "") || null,
+        birth_date: toIsoDate(form.birth),
+        notify_email: true,
+        notify_sms: false,
+        onboarding_completed_at: new Date().toISOString(),
+      });
+      if (profileError) {
+        toast.error("Cadastro criado, mas não conseguimos salvar todos os seus dados. Ajuste em Minha conta.");
+      }
+      setLoading(false);
+      setStep("done");
+      window.setTimeout(redirectTo, 2000);
+    } else {
+      // Confirmação de e-mail habilitada: ainda não há sessão para gravar o perfil
+      // (a RLS de profiles exige um usuário autenticado). O restante dos dados
+      // (telefone, CPF, nascimento) deverá ser preenchido em "Minha conta" após
+      // a confirmação do e-mail.
+      setLoading(false);
+      setPendingEmailConfirmation(true);
+      setStep("done");
+    }
+  };
+
   const next = () => {
     if (step === 1 && !step1Valid) return;
     if (step === 4 && !step4Valid) return;
     if (step === 4) {
-      setLoading(true);
-      window.setTimeout(() => {
-        signIn();
-        setLoading(false);
-        setStep("done");
-        window.setTimeout(redirectTo, 2000);
-      }, 800);
+      void finishSignup();
       return;
     }
     setStep((s) => (s === 1 ? 2 : s === 2 ? 3 : 4) as Step);
-    setCountdown(0);
-    setCode("");
-    setPhoneCode("");
     setError("");
   };
 
@@ -107,30 +153,6 @@ function SignupPage() {
     setStep((s) => (s === 2 ? 1 : s === 3 ? 2 : s === 4 ? 3 : 1) as Step);
     setError("");
   };
-
-  const verifyEmailCode = (value: string) => {
-    setCode(value);
-    if (value.length === 6) {
-      if (value === "123456") {
-        setError("");
-      } else {
-        setError("Código incorreto. Confira e tente de novo.");
-      }
-    }
-  };
-
-  const verifyPhoneCode = (value: string) => {
-    setPhoneCode(value);
-    if (value.length === 6) {
-      if (value === "123456") {
-        setError("");
-      } else {
-        setError("Código incorreto. Confira e tente de novo.");
-      }
-    }
-  };
-
-  const sendPhoneCode = () => setCountdown(60);
 
   return (
     <>
@@ -177,48 +199,25 @@ function SignupPage() {
 
           {step === 2 && (
             <>
-              <h1 className="text-center text-3xl font-bold">Confirme seu e-mail</h1>
-              <p className="mt-2 text-center text-sm text-muted-foreground">Enviamos um código de 6 dígitos para {form.email || "seu e-mail"}.</p>
-              <p className="mt-2 text-center text-xs text-amber-600">Código de teste: 123456</p>
-              <div className="mt-5 flex justify-center">
-                <OTPInput value={code} onChange={verifyEmailCode} />
-              </div>
-              {error && <p className="mt-3 text-center text-sm font-semibold text-destructive">{error}</p>}
-              <div className="mt-4 text-center text-sm">
-                {countdown > 0 ? <p className="text-muted-foreground">Reenviar em {countdown}s</p> : <button onClick={() => setCountdown(60)} className="font-semibold text-primary hover:underline">Reenviar código</button>}
-              </div>
-              <button onClick={() => setStep(1)} className="mt-4 block w-full text-center text-sm font-semibold text-primary hover:underline">Trocar e-mail</button>
-              <Button className="mt-5 w-full" onClick={next} disabled={code !== "123456"}>Continuar</Button>
+              <h1 className="text-center text-3xl font-bold">Confirmação de e-mail</h1>
+              <p className="mt-2 text-center text-sm text-muted-foreground">
+                Ao concluir seu cadastro, enviaremos um e-mail de confirmação para <strong>{form.email || "seu e-mail"}</strong>. Você poderá
+                entrar normalmente após confirmar.
+              </p>
+              <Button className="mt-5 w-full" onClick={next}>Continuar</Button>
             </>
           )}
 
           {step === 3 && (
             <>
-              <h1 className="text-center text-3xl font-bold">Confirme seu celular</h1>
-              {!countdown && phoneCode.length < 6 ? (
-                <>
-                  <p className="mt-2 text-center text-sm text-muted-foreground">Digite seu número com DDD.</p>
-                  <div className="mt-5 flex items-center gap-2 rounded-xl border border-input bg-background px-3 py-2">
-                    <span className="text-sm font-semibold text-muted-foreground">+55</span>
-                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })} placeholder="(00) 00000-0000" className="border-0 shadow-none focus-visible:ring-0" />
-                  </div>
-                  <Button className="mt-4 w-full" onClick={sendPhoneCode} disabled={form.phone.replace(/\D/g, "").length < 11}>Enviar código</Button>
-                </>
-              ) : (
-                <>
-                  <p className="mt-2 text-center text-sm text-muted-foreground">Enviamos um SMS para +55 {form.phone}.</p>
-                  <p className="mt-2 text-center text-xs text-amber-600">Código de teste: 123456</p>
-                  <div className="mt-5 flex justify-center">
-                    <OTPInput value={phoneCode} onChange={verifyPhoneCode} />
-                  </div>
-                  {error && <p className="mt-3 text-center text-sm font-semibold text-destructive">{error}</p>}
-                  <div className="mt-4 text-center text-sm">
-                    {countdown > 0 ? <p className="text-muted-foreground">Reenviar em {countdown}s</p> : <button onClick={() => setCountdown(60)} className="font-semibold text-primary hover:underline">Reenviar código</button>}
-                  </div>
-                  <button onClick={() => { setPhoneCode(""); setCountdown(0); }} className="mt-4 block w-full text-center text-sm font-semibold text-primary hover:underline">Trocar número</button>
-                </>
-              )}
-              <Button className="mt-5 w-full" onClick={next} disabled={phoneCode !== "123456"}>Continuar</Button>
+              <h1 className="text-center text-3xl font-bold">Seu celular</h1>
+              <p className="mt-2 text-center text-sm text-muted-foreground">Digite seu número com DDD.</p>
+              <div className="mt-5 flex items-center gap-2 rounded-xl border border-input bg-background px-3 py-2">
+                <span className="text-sm font-semibold text-muted-foreground">+55</span>
+                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })} placeholder="(00) 00000-0000" className="border-0 shadow-none focus-visible:ring-0" />
+              </div>
+              <p className="mt-3 text-center text-xs text-muted-foreground">A confirmação do celular por SMS ainda não está disponível.</p>
+              <Button className="mt-5 w-full" onClick={next} disabled={form.phone.replace(/\D/g, "").length < 11}>Continuar</Button>
             </>
           )}
 
@@ -230,6 +229,7 @@ function SignupPage() {
                 {form.birth.length === 10 && !validateDate(form.birth) && <p className="text-xs font-semibold text-destructive">Data inválida.</p>}
                 <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: maskCpf(e.target.value) })} placeholder="CPF" maxLength={14} />
                 {form.cpf.length === 14 && !validateCpf(form.cpf) && <p className="text-xs font-semibold text-destructive">CPF inválido. Confira os números.</p>}
+                {error && <p className="text-center text-sm font-semibold text-destructive">{error}</p>}
                 <Button type="submit" disabled={!step4Valid || loading}>
                   {loading ? <Loader2 className="size-4 animate-spin" /> : "Concluir cadastro"}
                 </Button>
@@ -242,9 +242,21 @@ function SignupPage() {
               <div className="mx-auto grid size-20 place-items-center rounded-full bg-primary text-primary-foreground">
                 <Check className="size-10" />
               </div>
-              <h1 className="mt-6 text-3xl font-bold">Cadastro concluído!</h1>
-              <p className="mt-2 text-lg text-muted-foreground">Bora pro rolê?</p>
-              <Confetti />
+              {pendingEmailConfirmation ? (
+                <>
+                  <h1 className="mt-6 text-3xl font-bold">Confirme seu e-mail</h1>
+                  <p className="mt-2 text-lg text-muted-foreground">
+                    Enviamos um link de confirmação para {form.email}. Abra-o para ativar sua conta e depois complete seus dados em
+                    "Minha conta".
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h1 className="mt-6 text-3xl font-bold">Cadastro concluído!</h1>
+                  <p className="mt-2 text-lg text-muted-foreground">Bora pro rolê?</p>
+                  <Confetti />
+                </>
+              )}
             </div>
           )}
         </div>

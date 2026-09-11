@@ -1,9 +1,14 @@
 import { useSyncExternalStore } from "react";
-import { demoTickets, type DemoTicket } from "@/data/account";
 
-type SessionState = { signedIn: boolean; city: string; tickets: DemoTicket[] };
+/**
+ * Store client-side apenas para o filtro de cidade usado na busca de eventos.
+ * Autenticação real vive em `@/lib/auth` (useAuth) — este arquivo não deve
+ * mais expor `signedIn`, `tickets` ou `signOut` (removidos por serem dados
+ * falsos de demonstração).
+ */
+type SessionState = { city: string };
 
-let state: SessionState = { signedIn: false, city: "", tickets: demoTickets };
+let state: SessionState = { city: "" };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
 const subscribe = (listener: () => void) => {
@@ -18,22 +23,7 @@ export function useSession() {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-export function signIn() {
-  state = { ...state, signedIn: true };
-  emit();
-}
-
-export function signOut() {
-  state = { ...state, signedIn: false };
-  emit();
-}
-
 export function setCity(city: string) {
   state = { ...state, city };
-  emit();
-}
-
-export function updateTicket(id: string, patch: Partial<DemoTicket>) {
-  state = { ...state, tickets: state.tickets.map((ticket) => (ticket.id === id ? { ...ticket, ...patch } : ticket)) };
   emit();
 }

@@ -13,6 +13,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { CookieBar } from "@/components/cookie-bar";
 import { NotFoundState } from "@/components/not-found-state";
 import { ErrorState } from "@/components/error-state";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/auth";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -97,34 +99,32 @@ function useServiceWorker() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isProducerPanel = pathname.startsWith("/produtor") || pathname.startsWith("/admin");
+  const isProducerPanel = pathname.startsWith("/produtor/") || pathname === "/produtor" || pathname.startsWith("/admin");
   const isPortaria = pathname.startsWith("/portaria");
   useServiceWorker();
 
+  let content: ReactNode;
   if (isProducerPanel) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <div className="min-h-screen bg-background text-foreground"><Outlet /></div>
-      </QueryClientProvider>
-    );
-  }
-
-  if (isPortaria) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <Outlet />
-      </QueryClientProvider>
-    );
-  }
-
-  return (
-    <QueryClientProvider client={queryClient}>
+    content = <div className="min-h-screen bg-background text-foreground"><Outlet /></div>;
+  } else if (isPortaria) {
+    content = <Outlet />;
+  } else {
+    content = (
       <div className="flex min-h-screen flex-col bg-background text-foreground">
         <SiteHeader />
         <main className="flex-1"><Outlet /></main>
         <SiteFooter />
         <CookieBar />
       </div>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        {content}
+        <Toaster position="top-center" richColors />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
