@@ -41,6 +41,9 @@ export function useUpdateProducer(producerId: string | undefined) {
   return useMutation({
     mutationFn: async (patch: TablesUpdate<"producers">) => {
       if (!producerId) throw new Error("Produtora não encontrada.");
+      if (patch.logo_url && !patch.logo_url.startsWith("https://")) {
+        throw new Error("A URL da logo deve começar com https://.");
+      }
       const { data, error } = await db
         .from("producers")
         .update(patch)
@@ -57,7 +60,10 @@ export function useUpdateProducer(producerId: string | undefined) {
   });
 }
 
-/** Upload de arquivo em bucket do Storage. Se o bucket não existir no projeto, o erro é repassado com mensagem clara. */
+/**
+ * Upload de arquivo em bucket público do Storage, em um caminho já conhecido
+ * (nunca lista o bucket). O nome do arquivo é sempre gerado pelo sistema.
+ */
 async function uploadToBucket(bucket: string, path: string, file: File) {
   const { error } = await db.storage
     .from(bucket)
@@ -66,19 +72,29 @@ async function uploadToBucket(bucket: string, path: string, file: File) {
     throw new Error(
       /bucket/i.test(error.message)
         ? `O espaço de armazenamento "${bucket}" ainda não foi configurado no projeto. Fale com o suporte.`
-        : error.message,
+        : friendlyError(error),
     );
   }
   const { data } = db.storage.from(bucket).getPublicUrl(path);
+  if (!data.publicUrl.startsWith("https://")) {
+    throw new Error("Não foi possível gerar um link seguro para o arquivo enviado.");
+  }
   return data.publicUrl;
+}
+
+/** Valida o arquivo (tamanho/tipo real) e envia para um caminho fixo e conhecido, com nome gerado pelo sistema. */
+async function checkAndUpload(bucket: string, folder: string, file: File, kind: UploadKind) {
+  const check = await checkUpload(file, kind);
+  if (!check.ok) throw new Error(check.error);
+  const fileName = generateFileName(check.extension, kind);
+  return uploadToBucket(bucket, `${folder}/${fileName}`, file);
 }
 
 export function useUploadProducerLogo(producerId: string | undefined) {
   return useMutation({
     mutationFn: async (file: File) => {
       if (!producerId) throw new Error("Produtora não encontrada.");
-      const ext = file.name.split(".").pop() ?? "jpg";
-      return uploadToBucket("producer-logos", `${producerId}/logo-${Date.now()}.${ext}`, file);
+      return checkAndUpload("producer-logos", producerId, file, "logo");
     },
   });
 }
@@ -87,8 +103,16 @@ export function useUploadEventBanner(eventId: string | undefined) {
   return useMutation({
     mutationFn: async (file: File) => {
       if (!eventId) throw new Error("Salve o evento antes de enviar o banner.");
-      const ext = file.name.split(".").pop() ?? "jpg";
-      return uploadToBucket("event-banners", `${eventId}/banner-${Date.now()}.${ext}`, file);
+      return checkAndUpload("event-banners", eventId, file, "banner");
+    },
+  });
+}
+
+export function useUploadVerificationDocument(producerId: string | undefined) {
+  return useMutation({
+    mutationFn: async ({ file, docKey }: { file: File; docKey: string }) => {
+      if (!producerId) throw new Error("Produtora não encontrada.");
+      return checkAndUpload("producer-documents", `${producerId}/${docKey}`, file, "document");
     },
   });
 }
@@ -197,6 +221,9 @@ export function useUpdateEvent(eventId: string | undefined, producerId: string |
     mutationFn: async (patch: TablesUpdate<"events"> & { regenerateSlugFrom?: string }) => {
       if (!eventId) throw new Error("Evento não encontrado.");
       const { regenerateSlugFrom, ...rest } = patch;
+      if (rest.banner_url && !rest.banner_url.startsWith("https://")) {
+        throw new Error("A URL do banner deve começar com https://.");
+      }
       const finalPatch: TablesUpdate<"events"> = { ...rest };
       if (regenerateSlugFrom)
         finalPatch.slug = await generateUniqueSlug(regenerateSlugFrom, eventId);
@@ -330,7 +357,6 @@ export function useAcceptProducerTerms(userId: string | undefined) {
       const { data, error } = await db
         .from("terms_acceptances")
         .insert({
-          user_id: userId,
           document: "producer_terms",
           version,
           user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,

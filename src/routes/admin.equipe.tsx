@@ -183,7 +183,10 @@ function AdminTeam() {
     }
   };
 
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
   const removeAccess = async (member: TeamMember) => {
+    setRemovingId(member.roleId);
     try {
       const { error } = await db.from("user_roles").delete().eq("id", member.roleId);
       if (error) throw error;
@@ -199,6 +202,8 @@ function AdminTeam() {
       qc.invalidateQueries({ queryKey: ["admin-audit-log"] });
     } catch (e) {
       toast.error(friendlyError(e as { message?: string }, "Não foi possível remover o acesso."));
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -297,7 +302,7 @@ function AdminTeam() {
                     size="sm"
                     variant="destructive"
                     onClick={() => removeAccess(u)}
-                    disabled={u.userId === user?.id}
+                    disabled={u.userId === user?.id || removingId === u.roleId}
                   >
                     Remover acesso
                   </Button>

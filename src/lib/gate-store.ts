@@ -255,7 +255,7 @@ export const gateActions = {
       return false;
     }
     await db.auth.signOut();
-    await idbClear("participants");
+    await clearGateIndexedDb();
     set({
       signedIn: false,
       staffEvents: [],
@@ -264,6 +264,8 @@ export const gateActions = {
       downloadedAt: null,
       downloadProgress: 0,
       participants: [],
+      pending: [],
+      history: [],
       logoutBlocked: "",
     });
     return true;
@@ -302,12 +304,17 @@ export const gateActions = {
     if (online) void gateActions.syncPending();
   },
 
-  async syncPending() {
+  async syncPending(): Promise<{ synced: number; failed: number }> {
+    if (state.isSyncing) return { synced: 0, failed: 0 };
     const items = [...state.pending];
-    if (items.length === 0) return 0;
+    if (items.length === 0) return { synced: 0, failed: 0 };
+    set({ isSyncing: true });
     let synced = 0;
+    let failed = 0;
     for (const item of items) {
-      const { data, error } = await db.rpc("checkin_ticket", {
+      // Uma requisição por vez, em ordem: evita reenviar o mesmo check-in duas vezes
+      // caso a conexão caia no meio da sincronização (falha parcial).
+      const { error } = await db.rpc("checkin_ticket", {
         p_event_id: state.selectedEventId!,
         p_qr_token: item.qrToken,
         p_scanned_at: item.scannedAt,
@@ -318,17 +325,29 @@ export const gateActions = {
         await idbDelete("pending", item.localId);
         set({ pending: state.pending.filter((p) => p.localId !== item.localId) });
         synced += 1;
-        void data;
+      } else {
+        failed += 1;
       }
     }
-    set({ lastSync: new Date().toISOString() });
-    return synced;
+    set({ lastSync: new Date().toISOString(), isSyncing: false });
+    return { synced, failed };
   },
 
   async scanCode(qrToken: string): Promise<ScanResult | null> {
     const code = qrToken.trim();
     if (!code || !state.selectedEventId) return null;
+    // Evita processar o mesmo código duas vezes se chegarem leituras quase simultâneas
+    // (dupla leitura da câmera ou duplo toque na busca manual), o que duplicaria o check-in.
+    if (scanningInFlight.has(code)) return null;
+    scanningInFlight.add(code);
+    try {
+      return await gateActions.processScan(code);
+    } finally {
+      scanningInFlight.delete(code);
+    }
+  },
 
+  async processScan(code: string): Promise<ScanResult | null> {
     if (!state.online) {
       const result = classifyLocally(code);
       if (result.kind === "granted" || result.kind === "granted_check_doc") {
@@ -402,4 +421,14 @@ export function getEnteredCounts() {
   const total = state.participants.length;
   const entered = state.participants.filter((p) => p.status === "used").length;
   return { entered, total };
+}
+
+// Mantém o status online/offline do app sincronizado com o navegador em tempo real.
+if (typeof window !== "undefined") {
+  const key = "__entroGateListenersBound";
+  if (!(window as unknown as Record<string, boolean>)[key]) {
+    (window as unknown as Record<string, boolean>)[key] = true;
+    window.addEventListener("online", () => gateActions.setOnline(true));
+    window.addEventListener("offline", () => gateActions.setOnline(false));
+  }
 }
