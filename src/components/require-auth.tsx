@@ -9,7 +9,7 @@ type Props = {
   /** Se informado, o usuário precisa ter pelo menos um destes papéis. */
   roles?: AppRole[];
   /** Para onde mandar quem não está logado. */
-  redirectTo?: "/entrar" | "/admin/entrar" | "/portaria";
+  redirectTo?: "/entrar" | "/portaria";
 };
 
 export function RequireAuth({ children, roles, redirectTo = "/entrar" }: Props) {

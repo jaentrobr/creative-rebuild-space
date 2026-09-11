@@ -374,7 +374,7 @@ export const gateActions = {
     }
 
     const { data, error } = await db.rpc("checkin_ticket", {
-      p_event_id: state.selectedEventId,
+      p_event_id: eventId,
       p_qr_token: code,
       p_scanned_at: new Date().toISOString(),
       p_device_id: deviceId(),
