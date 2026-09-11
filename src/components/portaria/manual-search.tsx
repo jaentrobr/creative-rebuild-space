@@ -1,41 +1,37 @@
 import { useMemo, useState } from "react";
-import { getEventParticipants } from "@/lib/gate-store";
-import { gateActions } from "@/lib/gate-store";
-import type { Participant } from "@/data/producer";
-import type { ScanResult } from "@/lib/gate-store";
+import { gateActions, getParticipants, useGate, type ScanResult } from "@/lib/gate-store";
+import type { DisplayTicket } from "@/data/gate";
 
-const statusLabel: Record<Participant["status"], string> = {
-  "Válido": "Válido",
-  "Utilizado": "Já utilizado",
-  "Transferido": "Transferido",
-  "Reembolsado": "Reembolsado",
+const statusLabel: Record<string, string> = {
+  valid: "Válido",
+  used: "Já utilizado",
+  transferred: "Transferido",
+  refunded: "Reembolsado",
+  canceled: "Cancelado",
 };
 
 export function ManualSearch({ onResult }: { onResult: (result: ScanResult) => void }) {
   const [query, setQuery] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const participants = getEventParticipants();
+  useGate();
+  const participants = getParticipants();
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     return participants
       .filter((p) => {
-        const cpfDigits = p.cpf.replace(/\D/g, "");
-        return (
-          p.name.toLowerCase().includes(q) ||
-          cpfDigits.slice(-3) === q ||
-          p.code.toLowerCase().includes(q)
-        );
+        const digits = (p.document ?? "").replace(/\D/g, "");
+        return p.name.toLowerCase().includes(q) || digits.slice(-3) === q || p.qrToken.toLowerCase().includes(q);
       })
       .slice(0, 20);
   }, [query, participants]);
 
   const confirming = results.find((r) => r.id === confirmId) ?? null;
 
-  const doCheckin = (p: Participant) => {
-    const result = gateActions.manualCheckin(p.id);
+  const doCheckin = async (p: DisplayTicket) => {
     setConfirmId(null);
+    const result = await gateActions.scanCode(p.qrToken);
     if (result) onResult(result);
   };
 
@@ -60,9 +56,12 @@ export function ManualSearch({ onResult }: { onResult: (result: ScanResult) => v
               {p.type} — {p.lot} {p.half ? "· Meia-entrada" : ""}
             </p>
             <p className="mt-1 text-sm font-bold">
-              Status: <span className={p.status === "Válido" ? "text-emerald-400" : "text-rose-400"}>{statusLabel[p.status]}</span>
+              Status:{" "}
+              <span className={p.status === "valid" ? "text-emerald-400" : "text-rose-400"}>
+                {statusLabel[p.status] ?? p.status}
+              </span>
             </p>
-            {p.status === "Válido" && (
+            {p.status === "valid" && (
               <button
                 type="button"
                 onClick={() => setConfirmId(p.id)}
@@ -89,7 +88,7 @@ export function ManualSearch({ onResult }: { onResult: (result: ScanResult) => v
               </button>
               <button
                 type="button"
-                onClick={() => doCheckin(confirming)}
+                onClick={() => void doCheckin(confirming)}
                 className="h-12 flex-1 rounded-xl bg-emerald-500 font-black text-black"
               >
                 Confirmar

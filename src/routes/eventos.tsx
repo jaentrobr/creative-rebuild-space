@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProducerCta } from "@/components/producer-cta";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { filterEvents, type EventFilterState } from "@/data/events";
+import { fetchPublishedEvents } from "@/lib/queries";
 import { SearchBar } from "@/components/search-bar";
 import { FilterBar } from "@/components/filter-bar";
 import { EventCard, EventCardRow } from "@/components/event-card";
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/eventos")({
       { title: "Eventos, festas e shows no Brasil — Entrô" },
       { name: "description", content: "Busque festas e shows por cidade, gênero, data e preço em todo o Brasil." },
       { property: "og:title", content: "Todos os eventos — Entrô" },
-      { property: "og:description", content: "Encontre seu próximo rolê em 6 cidades do Brasil." },
+      { property: "og:description", content: "Encontre seu próximo rolê em todo o Brasil." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -30,23 +32,28 @@ function EventsPage() {
   const { q, cidade, genero, quando } = Route.useSearch();
   const [state, setState] = useState<EventFilterState>({ q, city: cidade, genres: genero ? [genero] : [], prices: [], when: quando });
   const [visible, setVisible] = useState(10);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [attempt, setAttempt] = useState(0);
+
+  const { data: events = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["public-events"],
+    queryFn: fetchPublishedEvents,
+    staleTime: 60 * 1000,
+  });
 
   useEffect(() => {
     setState({ q, city: cidade, genres: genero ? [genero] : [], prices: [], when: quando });
     setVisible(10);
   }, [q, cidade, genero, quando]);
 
-  useEffect(() => {
-    setLoading(true);
-    setError(false);
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, [q, cidade, genero, quando, attempt]);
+  const cities = useMemo(
+    () => Array.from(new Set(events.map((event) => event.city).filter((c): c is string => Boolean(c)))).sort(),
+    [events]
+  );
+  const genres = useMemo(
+    () => Array.from(new Set(events.map((event) => event.genre).filter((g): g is string => Boolean(g)))).sort(),
+    [events]
+  );
 
-  const results = useMemo(() => filterEvents(state), [state]);
+  const results = useMemo(() => filterEvents(events, state), [events, state]);
 
   return (
     <>
@@ -56,12 +63,18 @@ function EventsPage() {
         <div className="mb-6"><SearchBar initial={q} /></div>
       </div>
 
-      <FilterBar state={state} onChange={(next) => { setState(next); setVisible(10); }} resultCount={results.length} />
+      <FilterBar
+        state={state}
+        onChange={(next) => { setState(next); setVisible(10); }}
+        resultCount={results.length}
+        cities={cities}
+        genres={genres}
+      />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        {error ? (
-          <ErrorState onRetry={() => setAttempt((n) => n + 1)} />
-        ) : loading ? (
+        {isError ? (
+          <ErrorState onRetry={() => refetch()} />
+        ) : isLoading ? (
           <EventCardGridSkeleton />
         ) : results.length ? (
           <>

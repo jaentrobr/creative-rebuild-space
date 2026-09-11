@@ -52,9 +52,9 @@ export function normalizeParticipants(raw: unknown): DisplayTicket[] {
 
 export type CheckinResponse = {
   result: CheckinResult;
-  ticket?: DisplayTicket;
-  usedAt?: string | null;
-  otherEventName?: string | null;
+  ticket?: DisplayTicket | undefined;
+  usedAt?: string | null | undefined;
+  otherEventName?: string | null | undefined;
 };
 
 export function normalizeCheckinResponse(raw: unknown): CheckinResponse {

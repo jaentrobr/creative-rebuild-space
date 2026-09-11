@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/session";
+import { useAuth } from "@/lib/auth";
 
 export function ProducerCta() {
-  const { signedIn } = useSession();
+  const { user } = useAuth();
 
   return (
     <section className="relative overflow-hidden bg-primary py-14 text-primary-foreground sm:py-20">
@@ -18,7 +18,7 @@ export function ProducerCta() {
         </p>
         <h2 className="mt-4 text-3xl font-extrabold sm:text-5xl">Quer criar seu evento?</h2>
         <p className="mx-auto mt-3 max-w-lg text-lg text-primary-foreground/85">Publique sua festa, venda ingressos e acompanhe tudo em um só lugar.</p>
-        {signedIn ? (
+        {user ? (
           <Button asChild size="lg" className="mt-7 border-2 border-ink bg-cta text-cta-foreground shadow-pop hover:-translate-y-0.5 hover:shadow-pop-lg active:translate-y-0 active:shadow-none">
             <Link to="/produtor">Criar meu evento</Link>
           </Button>

@@ -3,7 +3,7 @@ import { BarChart3, QrCode, Rocket, WalletCards } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { ProducerCta } from "@/components/producer-cta";
-import { useSession } from "@/lib/session";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/produtores")({
   head: () => ({
@@ -27,7 +27,7 @@ const benefits = [
 ] as const;
 
 function ProducersPage() {
-  const { signedIn } = useSession();
+  const { user } = useAuth();
 
   return (
     <>
@@ -36,7 +36,7 @@ function ProducersPage() {
           <p className="text-sm font-extrabold uppercase text-primary">Entrô para produtores</p>
           <h1 className="max-w-3xl text-5xl font-extrabold leading-none sm:text-7xl">Sua festa merece taxa justa.</h1>
           <p className="mt-5 max-w-xl text-lg text-muted-foreground">Tecnologia simples, repasse ágil e gente de verdade cuidando do seu evento.</p>
-          {signedIn ? (
+          {user ? (
             <Button asChild size="lg" className="mt-7">
               <Link to="/produtor">Criar meu evento</Link>
             </Button>

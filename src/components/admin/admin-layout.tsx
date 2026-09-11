@@ -41,7 +41,7 @@ export function AdminLayout({
   children,
 }: {
   title: string;
-  description?: string;
+  description?: string | undefined;
   actions?: ReactNode;
   children: ReactNode;
 }) {

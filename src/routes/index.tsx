@@ -1,14 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { ProducerCta } from "@/components/producer-cta";
 import { Disc3, Guitar, Music2, Mic2, PartyPopper, Radio, Sparkles, GraduationCap, QrCode, WifiOff, Send, RotateCcw } from "lucide-react";
-import { events, filterEvents, isWeekend, type EventItem } from "@/data/events";
-import { cityCards } from "@/data/cities";
+import { filterEvents, isWeekend, eventImage, type EventFilterState } from "@/data/events";
 import { buyerFaqs } from "@/data/faqs";
 import { SearchBar } from "@/components/search-bar";
 import { EventCarousel } from "@/components/event-carousel";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useSession } from "@/lib/session";
 import { eventsSearch } from "@/lib/events-search";
+import { fetchPublishedEvents, fetchPlatformSettings, type PublicEvent } from "@/lib/queries";
 import heroDesktop from "@/assets/entro-hero-desktop-v2.png.asset.json";
 import heroMobile from "@/assets/entro-hero-mobile-v2.png.asset.json";
 import { cityShort } from "@/data/cities";
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/")({
       { title: "Entrô — Ingressos para festas e shows no Brasil" },
       { name: "description", content: "Encontre e compre ingressos para festas, shows e rolês em todo o Brasil." },
       { property: "og:title", content: "Entrô — Seu próximo rolê começa aqui" },
-      { property: "og:description", content: "Festas, shows e experiências em 6 cidades do Brasil." },
+      { property: "og:description", content: "Festas, shows e experiências em todo o Brasil." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -27,23 +28,33 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const styleBlocks = [
-  { genre: "Funk", icon: Radio, tone: "bg-primary text-primary-foreground" },
-  { genre: "Eletrônica", icon: Disc3, tone: "bg-cta text-cta-foreground" },
-  { genre: "Sertanejo", icon: Guitar, tone: "bg-sun text-ink" },
-  { genre: "Pagode", icon: Music2, tone: "bg-cta text-cta-foreground" },
-  { genre: "Rap/Trap", icon: Mic2, tone: "bg-sun text-ink" },
-  { genre: "Open bar", icon: PartyPopper, tone: "bg-primary text-primary-foreground" },
-  { genre: "Rock", icon: Guitar, tone: "bg-sun text-ink" },
-  { genre: "Universitária", icon: GraduationCap, tone: "bg-primary text-primary-foreground" },
-];
+const styleIcons: Record<string, { icon: typeof Radio; tone: string }> = {
+  Funk: { icon: Radio, tone: "bg-primary text-primary-foreground" },
+  Eletrônica: { icon: Disc3, tone: "bg-cta text-cta-foreground" },
+  Sertanejo: { icon: Guitar, tone: "bg-sun text-ink" },
+  Pagode: { icon: Music2, tone: "bg-cta text-cta-foreground" },
+  "Rap/Trap": { icon: Mic2, tone: "bg-sun text-ink" },
+  "Open bar": { icon: PartyPopper, tone: "bg-primary text-primary-foreground" },
+  Rock: { icon: Guitar, tone: "bg-sun text-ink" },
+  Universitária: { icon: GraduationCap, tone: "bg-primary text-primary-foreground" },
+};
+const fallbackTones = ["bg-primary text-primary-foreground", "bg-cta text-cta-foreground", "bg-sun text-ink"];
+
+const emptyFilters: EventFilterState = { q: "", city: "", genres: [], prices: [], when: "" };
 
 function Index() {
   const { city } = useSession();
-  const inCity = (list: EventItem[]) => (city ? list.filter((event) => event.city === city) : list);
-  const trending = inCity(events.filter((event) => event.featured));
-  const weekend = inCity(events.filter((event) => isWeekend(event.dateISO)));
-  const byGenre = (genre: string) => inCity(filterEvents({ ...eventsSearchState, genres: [genre] }));
+  const { data: events = [] } = useQuery({ queryKey: ["public-events"], queryFn: fetchPublishedEvents, staleTime: 60 * 1000 });
+  const { data: settings } = useQuery({ queryKey: ["platform-settings"], queryFn: fetchPlatformSettings, staleTime: 5 * 60 * 1000 });
+
+  const inCity = (list: PublicEvent[]) => (city ? list.filter((event) => event.city === city) : list);
+  const trending = inCity(events.filter((event) => event.is_featured));
+  const weekend = inCity(events.filter((event) => isWeekend(event.starts_at)));
+
+  const genres = Array.from(new Set(events.map((event) => event.genre).filter((g): g is string => Boolean(g))));
+  const byGenre = (genre: string) => inCity(filterEvents(events, { ...emptyFilters, genres: [genre] }));
+
+  const cities = settings?.cities ?? Array.from(new Set(events.map((event) => event.city).filter((c): c is string => Boolean(c))));
 
   return (
     <>
@@ -96,43 +107,60 @@ function Index() {
       <div className="mt-2">
         <EventCarousel title={city ? `Em alta em ${cityShort(city)}` : "Em alta"} events={trending} viewAll={{ cidade: city }} />
         <EventCarousel title="Este fim de semana" events={weekend} viewAll={{ cidade: city, quando: "fds" }} />
-        <EventCarousel title="Funk" events={byGenre("Funk")} viewAll={{ cidade: city, genero: "Funk" }} />
-        <EventCarousel title="Eletrônica" events={byGenre("Eletrônica")} viewAll={{ cidade: city, genero: "Eletrônica" }} />
-        <EventCarousel title="Sertanejo" events={byGenre("Sertanejo")} viewAll={{ cidade: city, genero: "Sertanejo" }} />
+        {genres.slice(0, 3).map((genre) => (
+          <EventCarousel key={genre} title={genre} events={byGenre(genre)} viewAll={{ cidade: city, genero: genre }} />
+        ))}
       </div>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-        <div className="mb-5 flex items-center gap-2">
-          <h2 className="text-3xl font-bold sm:text-4xl">Explore por estilo</h2>
-          <span className="text-2xl text-sun">✦</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {styleBlocks.map(({ genre, icon: Icon, tone }) => (
-            <Link key={genre} to="/eventos" search={eventsSearch({ genero: genre, cidade: city })} className={`flex items-center gap-3 rounded-2xl border-2 border-ink p-4 font-display text-lg font-extrabold shadow-pop transition-transform hover:-translate-y-1 ${tone}`}>
-              <Icon className="size-6 shrink-0" />
-              <span className="min-w-0 truncate">{genre}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="bg-secondary">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <h2 className="mb-5 text-3xl font-bold sm:text-4xl">Rolês por cidade</h2>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-            {cityCards.map((item) => (
-              <Link key={item.name} to="/eventos" search={eventsSearch({ cidade: item.name })} className="group relative overflow-hidden rounded-2xl border border-border">
-                <img src={item.image} alt={`Rolês em ${item.name}`} loading="lazy" width={800} height={500} className="h-36 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-44" />
-                <div className="absolute inset-0 bg-linear-to-t from-ink/85 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-4 text-primary-foreground">
-                  <p className="font-display text-xl font-extrabold">{item.name}</p>
-                  <p className="text-sm text-primary-foreground/80">{events.filter((event) => event.city === item.name).length} eventos</p>
-                </div>
-              </Link>
-            ))}
+      {genres.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+          <div className="mb-5 flex items-center gap-2">
+            <h2 className="text-3xl font-bold sm:text-4xl">Explore por estilo</h2>
+            <span className="text-2xl text-sun">✦</span>
           </div>
-        </div>
-      </section>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {genres.map((genre, index) => {
+              const style = styleIcons[genre];
+              const Icon = style?.icon ?? Sparkles;
+              const tone = style?.tone ?? fallbackTones[index % fallbackTones.length]!;
+              return (
+                <Link key={genre} to="/eventos" search={eventsSearch({ genero: genre, cidade: city })} className={`flex items-center gap-3 rounded-2xl border-2 border-ink p-4 font-display text-lg font-extrabold shadow-pop transition-transform hover:-translate-y-1 ${tone}`}>
+                  <Icon className="size-6 shrink-0" />
+                  <span className="min-w-0 truncate">{genre}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {cities.length > 0 && (
+        <section className="bg-secondary">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+            <h2 className="mb-5 text-3xl font-bold sm:text-4xl">Rolês por cidade</h2>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+              {cities.map((item) => {
+                const cityEvents = events.filter((event) => event.city === item);
+                const image = cityEvents[0] ? eventImage(cityEvents[0]) : undefined;
+                return (
+                  <Link key={item} to="/eventos" search={eventsSearch({ cidade: item })} className="group relative overflow-hidden rounded-2xl border border-border">
+                    {image ? (
+                      <img src={image} alt={`Rolês em ${item}`} loading="lazy" width={800} height={500} className="h-36 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-44" />
+                    ) : (
+                      <div className="h-36 w-full bg-gradient-to-br from-primary to-cta sm:h-44" />
+                    )}
+                    <div className="absolute inset-0 bg-linear-to-t from-ink/85 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-4 text-primary-foreground">
+                      <p className="font-display text-xl font-extrabold">{item}</p>
+                      <p className="text-sm text-primary-foreground/80">{cityEvents.length} eventos</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2">
         <div className="relative mx-auto w-64">
@@ -185,5 +213,3 @@ function Index() {
     </>
   );
 }
-
-const eventsSearchState = { q: "", city: "", genres: [] as string[], prices: [] as string[], when: "" };
