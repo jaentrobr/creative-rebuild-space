@@ -31,7 +31,7 @@ export function SiteFooter() {
         </div>
         <div>
           <p className="mb-3 font-display text-lg font-extrabold">Fale com a gente</p>
-          <div className="grid content-start gap-3 text-sm text-primary-foreground/80">
+          <div className="grid content-start gap-3 text-sm font-bold text-primary-foreground/80">
             <a href="https://instagram.com/ja.entro" target="_blank" rel="noreferrer" className="flex items-center gap-2">
               <Instagram className="size-4 text-sun" /> @ja.entro
             </a>
