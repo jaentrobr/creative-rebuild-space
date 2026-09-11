@@ -27,6 +27,7 @@ import { Route as TermosRouteImport } from './routes/termos'
 import { Route as TermosProdutorRouteImport } from './routes/termos-produtor'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
+import { Route as AdminDiagnosticoRouteImport } from './routes/admin.diagnostico'
 import { Route as AdminEquipeRouteImport } from './routes/admin.equipe'
 import { Route as AdminEventosRouteImport } from './routes/admin.eventos'
 import { Route as AdminFinanceiroRouteImport } from './routes/admin.financeiro'
@@ -135,6 +136,11 @@ const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDiagnosticoRoute = AdminDiagnosticoRouteImport.update({
+  id: '/diagnostico',
+  path: '/diagnostico',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminEquipeRoute = AdminEquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/termos-produtor': typeof TermosProdutorRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/diagnostico': typeof AdminDiagnosticoRoute
   '/admin/equipe': typeof AdminEquipeRoute
   '/admin/eventos': typeof AdminEventosRoute
   '/admin/financeiro': typeof AdminFinanceiroRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/termos-produtor': typeof TermosProdutorRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/diagnostico': typeof AdminDiagnosticoRoute
   '/admin/equipe': typeof AdminEquipeRoute
   '/admin/eventos': typeof AdminEventosRoute
   '/admin/financeiro': typeof AdminFinanceiroRoute
@@ -311,6 +319,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/termos-produtor': typeof TermosProdutorRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/diagnostico': typeof AdminDiagnosticoRoute
   '/admin/equipe': typeof AdminEquipeRoute
   '/admin/eventos': typeof AdminEventosRoute
   '/admin/financeiro': typeof AdminFinanceiroRoute
@@ -350,6 +359,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/termos-produtor'
     | '/admin/configuracoes'
+    | '/admin/diagnostico'
     | '/admin/equipe'
     | '/admin/eventos'
     | '/admin/financeiro'
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/termos-produtor'
     | '/admin/configuracoes'
+    | '/admin/diagnostico'
     | '/admin/equipe'
     | '/admin/eventos'
     | '/admin/financeiro'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/termos-produtor'
     | '/admin/configuracoes'
+    | '/admin/diagnostico'
     | '/admin/equipe'
     | '/admin/eventos'
     | '/admin/financeiro'
@@ -589,6 +601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracoesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/diagnostico': {
+      id: '/admin/diagnostico'
+      path: '/diagnostico'
+      fullPath: '/admin/diagnostico'
+      preLoaderRoute: typeof AdminDiagnosticoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/equipe': {
       id: '/admin/equipe'
       path: '/equipe'
@@ -713,6 +732,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminDiagnosticoRoute: typeof AdminDiagnosticoRoute
   AdminEquipeRoute: typeof AdminEquipeRoute
   AdminEventosRoute: typeof AdminEventosRoute
   AdminFinanceiroRoute: typeof AdminFinanceiroRoute
@@ -724,6 +744,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminDiagnosticoRoute: AdminDiagnosticoRoute,
   AdminEquipeRoute: AdminEquipeRoute,
   AdminEventosRoute: AdminEventosRoute,
   AdminFinanceiroRoute: AdminFinanceiroRoute,
