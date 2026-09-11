@@ -46,6 +46,11 @@ function Verification() {
   const [docs, setDocs] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const stored = producerPrivate?.contact_phone;
+    if (stored) setContactPhone(maskPhone(stored.replace(/^55/, "")));
+  }, [producerPrivate?.contact_phone]);
+
   const adult = (value: string) => {
     if (!validateDate(value)) return false;
     const [d, m, y] = value.split("/").map(Number);
