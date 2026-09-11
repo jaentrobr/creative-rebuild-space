@@ -1,6 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Copy, Download, PauseCircle, RefreshCw, Share2, XCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarClock, Copy, Download, PauseCircle, RefreshCw, Share2, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
+import { RescheduleDialog } from "@/components/producer/reschedule-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { db } from "@/integrations/meu-supabase/client";
+import { useAuth } from "@/lib/auth";
+import { useEvent, useEventTicketTypes } from "@/lib/producer-queries";
+import { rescheduleDeadline, translateRescheduleError } from "@/lib/reschedule";
 import { PanelCard, ProducerLayout, StatCard, StatusPill } from "@/components/producer/producer-layout";
 import { SalesChart } from "@/components/producer/sales-chart";
 import { Button } from "@/components/ui/button";
