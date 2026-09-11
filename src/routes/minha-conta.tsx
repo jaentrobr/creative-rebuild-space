@@ -1,7 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
+import { TEXT_LIMITS } from "@/config/security";
+import { clearGateIndexedDb } from "@/lib/gate-store";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,18 +35,29 @@ export const Route = createFileRoute("/minha-conta")({
   ),
 });
 
-function mapAuthError(message: string): string {
-  const normalized = message.toLowerCase();
+const profileSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Informe seu nome.")
+    .max(TEXT_LIMITS.fullName, `O nome pode ter no máximo ${TEXT_LIMITS.fullName} caracteres.`),
+});
+
+function mapAuthError(error: { message?: string | null }): string {
+  const normalized = (error.message ?? "").toLowerCase();
   if (normalized.includes("should be different"))
     return "A nova senha deve ser diferente da atual.";
   if (normalized.includes("password"))
     return "A senha não atende aos requisitos mínimos (mínimo 6 caracteres).";
-  return "Não foi possível concluir. Tente novamente em instantes.";
+  return friendlyError(error, "Não foi possível concluir. Tente novamente em instantes.");
 }
 
 function AccountPage() {
   const { user, profile, refresh, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [signingOut, setSigningOut] = useState(false);
+  const [nameError, setNameError] = useState("");
   const [saved, setSaved] = useState("");
   const [name, setName] = useState("");
   const [emailNotif, setEmailNotif] = useState(true);
@@ -60,15 +76,21 @@ function AccountPage() {
   const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!user) return;
+    setNameError("");
+    const parsed = profileSchema.safeParse({ name });
+    if (!parsed.success) {
+      setNameError(parsed.error.issues[0]?.message ?? "Nome inválido.");
+      return;
+    }
     setSavingProfile(true);
     const payload: TablesInsert<"profiles"> = {
       id: user.id,
-      full_name: name,
+      full_name: parsed.data.name,
     };
     const { error } = await db.from("profiles").upsert(payload);
     setSavingProfile(false);
     if (error) {
-      toast.error("Não foi possível salvar seus dados. Tente novamente.");
+      toast.error(friendlyError(error, "Não foi possível salvar seus dados. Tente novamente."));
       return;
     }
     await refresh();
@@ -91,7 +113,7 @@ function AccountPage() {
     const { error } = await db.auth.updateUser({ password: newPassword });
     setSavingPassword(false);
     if (error) {
-      setPasswordError(mapAuthError(error.message));
+      setPasswordError(mapAuthError(error));
       return;
     }
     setNewPassword("");
@@ -106,15 +128,23 @@ function AccountPage() {
     const payload: TablesInsert<"profiles"> = { id: user.id, notify_email: value };
     const { error } = await db.from("profiles").upsert(payload);
     if (error) {
-      toast.error("Não foi possível salvar sua preferência.");
+      toast.error(friendlyError(error, "Não foi possível salvar sua preferência."));
       return;
     }
     await refresh();
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    void navigate({ to: "/" });
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOut();
+      queryClient.clear();
+      await clearGateIndexedDb();
+      void navigate({ to: "/" });
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -130,7 +160,13 @@ function AccountPage() {
         <h2 className="text-2xl font-bold">Dados pessoais</h2>
         <label className="grid gap-1 text-sm font-semibold">
           Nome
-          <Input value={name} onChange={(e) => setName(e.target.value)} required />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={TEXT_LIMITS.fullName}
+            required
+          />
+          {nameError && <span className="text-xs font-semibold text-destructive">{nameError}</span>}
         </label>
         <label className="grid gap-1 text-sm font-semibold">
           CPF
@@ -191,8 +227,8 @@ function AccountPage() {
       </div>
 
       <div className="mt-5 rounded-xl border border-border p-5">
-        <Button type="button" variant="ghost" onClick={handleSignOut}>
-          Sair da conta
+        <Button type="button" variant="ghost" onClick={handleSignOut} disabled={signingOut}>
+          {signingOut ? <Loader2 className="size-4 animate-spin" /> : "Sair da conta"}
         </Button>
       </div>
     </PageShell>

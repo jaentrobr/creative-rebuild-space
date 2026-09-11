@@ -136,6 +136,7 @@ function TicketDetail() {
   const queryClient = useQueryClient();
   const { data: ticket, isLoading, isError } = useTicketDetail(id, user?.id);
   const [confirmRefundOpen, setConfirmRefundOpen] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const eventForHooks = ticket?.events ?? null;
   const isRescheduled = (eventForHooks?.reschedule_count ?? 0) >= 1;
@@ -296,10 +297,19 @@ function TicketDetail() {
         </Button>
         <Button
           className="gap-2"
-          disabled={!active}
-          onClick={() => void downloadTicketPdf(ticket, event)}
+          disabled={!active || downloadingPdf}
+          onClick={async () => {
+            setDownloadingPdf(true);
+            try {
+              await downloadTicketPdf(ticket, event);
+            } catch {
+              toast.error("Não foi possível gerar o PDF agora. Tente novamente.");
+            } finally {
+              setDownloadingPdf(false);
+            }
+          }}
         >
-          <Download className="size-4" /> Baixar PDF
+          <Download className="size-4" /> {downloadingPdf ? "Gerando…" : "Baixar PDF"}
         </Button>
         <Button variant="outline" className="gap-2" disabled title={refundDisabledReason}>
           <RotateCcw className="size-4" /> Solicitar reembolso
