@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { db } from "@/integrations/meu-supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import type { Tables } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
 import {
@@ -209,7 +210,7 @@ function OrderDetail({
       setRefundOpen(false);
       qc.invalidateQueries({ queryKey: ["admin-order-detail", order.id] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível solicitar o estorno.");
+      toast.error(friendlyError(err as { message?: string }, "Não foi possível solicitar o estorno."));
     }
   };
 

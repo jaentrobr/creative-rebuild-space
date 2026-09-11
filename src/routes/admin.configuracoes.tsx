@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { db } from "@/integrations/meu-supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import type { Tables } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
 import { logAudit } from "@/lib/admin-store";
@@ -152,7 +153,7 @@ function AdminSettings() {
       toast.success("Configurações salvas.");
       qc.invalidateQueries({ queryKey: ["admin-platform-settings"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível salvar as configurações.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível salvar as configurações."));
     } finally {
       setSaving(false);
     }
@@ -165,7 +166,7 @@ function AdminSettings() {
       if (error) throw error;
       toast.success(`E-mail de teste enviado. Resposta do Resend: ${JSON.stringify(data)}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível enviar o e-mail de teste.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível enviar o e-mail de teste."));
     } finally {
       setSendingTestEmail(false);
     }
@@ -186,7 +187,7 @@ function AdminSettings() {
       });
       qc.invalidateQueries({ queryKey: ["admin-home-banners"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível atualizar o banner.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível atualizar o banner."));
     }
   };
 
@@ -211,7 +212,7 @@ function AdminSettings() {
       });
       qc.invalidateQueries({ queryKey: ["admin-home-banners"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível reordenar os banners.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível reordenar os banners."));
     }
   };
 
@@ -228,7 +229,7 @@ function AdminSettings() {
       toast.success("Banner excluído.");
       qc.invalidateQueries({ queryKey: ["admin-home-banners"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível excluir o banner.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível excluir o banner."));
     }
   };
 
@@ -265,7 +266,7 @@ function AdminSettings() {
       toast.success("Banner enviado.");
       qc.invalidateQueries({ queryKey: ["admin-home-banners"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível enviar o banner.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível enviar o banner."));
     }
   };
 

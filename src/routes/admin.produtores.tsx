@@ -15,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/integrations/meu-supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import type { Enums, Tables } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
 import { VERIFICATION_LABELS, logAudit } from "@/lib/admin-store";
@@ -238,7 +239,7 @@ function ProducerDetail({ producerId, onBack }: { producerId: string; onBack: ()
       qc.invalidateQueries({ queryKey: ["admin-producer-detail", producerId] });
       qc.invalidateQueries({ queryKey: ["admin-producers"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível atualizar a verificação.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível atualizar a verificação."));
     } finally {
       setBusy(false);
     }

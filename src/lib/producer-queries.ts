@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/integrations/meu-supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
+import { friendlyError } from "@/lib/friendly-error";
+import { checkUpload, generateFileName, type UploadKind } from "@/lib/uploads";
 
 export type ProducerRow = Tables<"producers">;
 export type EventRow = Tables<"events">;

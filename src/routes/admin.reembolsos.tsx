@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { db } from "@/integrations/meu-supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import type { Enums, Tables } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
 import { CHARGEBACK_STATUS_LABELS, fetchProfilesMap, logAudit } from "@/lib/admin-store";
@@ -288,7 +289,7 @@ function ChargebackDetail({
       qc.invalidateQueries({ queryKey: ["admin-chargebacks"] });
       onBack();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível enviar a defesa.");
+      toast.error(friendlyError(err as { message?: string }, "Não foi possível enviar a defesa."));
     }
   };
 

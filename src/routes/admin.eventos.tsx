@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { db } from "@/integrations/meu-supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import type { Enums, Tables } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
 import { EVENT_STATUS_LABELS, logAudit } from "@/lib/admin-store";
@@ -183,7 +184,7 @@ function AdminEvents() {
       });
       qc.invalidateQueries({ queryKey: ["admin-events"] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível atualizar o destaque.");
+      toast.error(friendlyError(err as { message?: string }, "Não foi possível atualizar o destaque."));
     }
   };
 
@@ -207,7 +208,7 @@ function AdminEvents() {
       setSuspendId(null);
       qc.invalidateQueries({ queryKey: ["admin-events"] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível suspender o evento.");
+      toast.error(friendlyError(err as { message?: string }, "Não foi possível suspender o evento."));
     }
   };
 
@@ -227,7 +228,7 @@ function AdminEvents() {
       toast.success("Evento reativado.");
       qc.invalidateQueries({ queryKey: ["admin-events"] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível reativar o evento.");
+      toast.error(friendlyError(err as { message?: string }, "Não foi possível reativar o evento."));
     }
   };
 

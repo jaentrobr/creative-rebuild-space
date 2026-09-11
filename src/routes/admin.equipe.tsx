@@ -25,6 +25,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { db } from "@/integrations/meu-supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { ROLE_LABELS, logAudit, fetchProfilesMap } from "@/lib/admin-store";
 import { shortDateTime } from "@/lib/format";
@@ -176,7 +177,7 @@ function AdminTeam() {
       qc.invalidateQueries({ queryKey: ["admin-team"] });
       qc.invalidateQueries({ queryKey: ["admin-audit-log"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível atribuir o papel.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível atribuir o papel."));
     } finally {
       setBusy(false);
     }
@@ -197,7 +198,7 @@ function AdminTeam() {
       qc.invalidateQueries({ queryKey: ["admin-team"] });
       qc.invalidateQueries({ queryKey: ["admin-audit-log"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível remover o acesso.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível remover o acesso."));
     }
   };
 
