@@ -36,7 +36,10 @@ export function QrScanner({ onDecode, active }: Props) {
     return () => {
       cancelled = true;
       try {
-        instance?.stop?.().then(() => instance.clear()).catch(() => {});
+        instance
+          ?.stop?.()
+          .then(() => instance.clear())
+          .catch(() => {});
       } catch {
         try {
           instance?.clear?.();
@@ -58,7 +61,11 @@ export function QrScanner({ onDecode, active }: Props) {
 
   return (
     <div className="relative flex-1 overflow-hidden rounded-3xl bg-black">
-      <div id="portaria-qr-reader" ref={ref} className="absolute inset-0 [&_video]:h-full [&_video]:w-full [&_video]:object-cover" />
+      <div
+        id="portaria-qr-reader"
+        ref={ref}
+        className="absolute inset-0 [&_video]:h-full [&_video]:w-full [&_video]:object-cover"
+      />
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/90 p-6 text-center text-lg font-semibold text-white">
           {error}

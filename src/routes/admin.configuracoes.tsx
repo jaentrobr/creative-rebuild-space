@@ -10,12 +10,19 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { db } from "@/integrations/meu-supabase/client";
+import { friendlyError } from "@/lib/friendly-error";
+import { checkUpload, generateFileName } from "@/lib/uploads";
 import type { Tables } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
 import { logAudit } from "@/lib/admin-store";
 
 export const Route = createFileRoute("/admin/configuracoes")({
-  head: () => ({ meta: [{ title: "Configurações — Admin Entrô" }, { name: "robots", content: "noindex, nofollow" }] }),
+  head: () => ({
+    meta: [
+      { title: "Configurações — Admin Entrô" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: AdminSettings,
 });
 
@@ -42,7 +49,11 @@ function useSettings() {
   return useQuery({
     queryKey: ["admin-platform-settings"],
     queryFn: async () => {
-      const { data, error } = await db.from("platform_settings").select("*").eq("id", 1).maybeSingle();
+      const { data, error } = await db
+        .from("platform_settings")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("Configurações da plataforma não encontradas.");
       return data as PlatformSettings;
@@ -54,7 +65,10 @@ function useBanners() {
   return useQuery({
     queryKey: ["admin-home-banners"],
     queryFn: async () => {
-      const { data, error } = await db.from("home_banners").select("*").order("sort_order", { ascending: true });
+      const { data, error } = await db
+        .from("home_banners")
+        .select("*")
+        .order("sort_order", { ascending: true });
       if (error) throw error;
       return (data ?? []) as HomeBanner[];
     },
@@ -140,12 +154,11 @@ function AdminSettings() {
       toast.success("Configurações salvas.");
       qc.invalidateQueries({ queryKey: ["admin-platform-settings"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível salvar as configurações.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível salvar as configurações."));
     } finally {
       setSaving(false);
     }
   };
-
 
   const sendTestEmail = async () => {
     setSendingTestEmail(true);
@@ -154,7 +167,7 @@ function AdminSettings() {
       if (error) throw error;
       toast.success(`E-mail de teste enviado. Resposta do Resend: ${JSON.stringify(data)}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível enviar o e-mail de teste.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível enviar o e-mail de teste."));
     } finally {
       setSendingTestEmail(false);
     }
@@ -162,7 +175,10 @@ function AdminSettings() {
 
   const toggleBanner = async (banner: HomeBanner) => {
     try {
-      const { error } = await db.from("home_banners").update({ is_active: !banner.is_active }).eq("id", banner.id);
+      const { error } = await db
+        .from("home_banners")
+        .update({ is_active: !banner.is_active })
+        .eq("id", banner.id);
       if (error) throw error;
       await logAudit({
         actorId: user?.id ?? null,
@@ -172,7 +188,7 @@ function AdminSettings() {
       });
       qc.invalidateQueries({ queryKey: ["admin-home-banners"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível atualizar o banner.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível atualizar o banner."));
     }
   };
 
@@ -197,7 +213,7 @@ function AdminSettings() {
       });
       qc.invalidateQueries({ queryKey: ["admin-home-banners"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível reordenar os banners.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível reordenar os banners."));
     }
   };
 
@@ -214,22 +230,23 @@ function AdminSettings() {
       toast.success("Banner excluído.");
       qc.invalidateQueries({ queryKey: ["admin-home-banners"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível excluir o banner.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível excluir o banner."));
     }
   };
 
   const uploadBanner = async (file: File, device: Tables<"home_banners">["device"]) => {
+    const check = await checkUpload(file, "banner");
+    if (!check.ok) {
+      toast.error(check.error);
+      return;
+    }
     try {
       const bucket = "home-banners";
-      const path = `${device}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await db.storage.from(bucket).upload(path, file, { upsert: true, cacheControl: "3600" });
-      if (uploadError) {
-        throw new Error(
-          /bucket/i.test(uploadError.message)
-            ? `O espaço de armazenamento "${bucket}" ainda não foi configurado no projeto. Fale com o suporte.`
-            : uploadError.message,
-        );
-      }
+      const path = `${device}/${generateFileName(check.extension, device)}`;
+      const { error: uploadError } = await db.storage
+        .from(bucket)
+        .upload(path, file, { upsert: true, cacheControl: "3600", contentType: check.type });
+      if (uploadError) throw uploadError;
       const { data: pub } = db.storage.from(bucket).getPublicUrl(path);
       const banners = bannersQuery.data ?? [];
       const nextOrder = banners.length > 0 ? Math.max(...banners.map((b) => b.sort_order)) + 1 : 0;
@@ -249,14 +266,17 @@ function AdminSettings() {
       toast.success("Banner enviado.");
       qc.invalidateQueries({ queryKey: ["admin-home-banners"] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível enviar o banner.");
+      toast.error(friendlyError(e as { message?: string }, "Não foi possível enviar o banner."));
     }
   };
 
   return (
     <AdminLayout title="Configurações" description="Taxas, filtros e banners da plataforma.">
       {settingsQuery.isError ? (
-        <ErrorState description="Não conseguimos carregar as configurações." onRetry={() => settingsQuery.refetch()} />
+        <ErrorState
+          description="Não conseguimos carregar as configurações."
+          onRetry={() => settingsQuery.refetch()}
+        />
       ) : settingsQuery.isLoading || !settingsQuery.data ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : (
@@ -264,62 +284,120 @@ function AdminSettings() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="pix-fee">Taxa Pix (%)</Label>
-              <Input id="pix-fee" value={form.pixFee} onChange={(e) => setForm((f) => ({ ...f, pixFee: e.target.value }))} />
+              <Input
+                id="pix-fee"
+                value={form.pixFee}
+                onChange={(e) => setForm((f) => ({ ...f, pixFee: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="pix-min">Taxa Pix mínima (R$)</Label>
-              <Input id="pix-min" value={form.pixMin} onChange={(e) => setForm((f) => ({ ...f, pixMin: e.target.value }))} />
+              <Input
+                id="pix-min"
+                value={form.pixMin}
+                onChange={(e) => setForm((f) => ({ ...f, pixMin: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="card-fee">Taxa cartão (%)</Label>
-              <Input id="card-fee" value={form.cardFee} onChange={(e) => setForm((f) => ({ ...f, cardFee: e.target.value }))} />
+              <Input
+                id="card-fee"
+                value={form.cardFee}
+                onChange={(e) => setForm((f) => ({ ...f, cardFee: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="card-min">Taxa cartão mínima (R$)</Label>
-              <Input id="card-min" value={form.cardMin} onChange={(e) => setForm((f) => ({ ...f, cardMin: e.target.value }))} />
+              <Input
+                id="card-min"
+                value={form.cardMin}
+                onChange={(e) => setForm((f) => ({ ...f, cardMin: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="advance-fee">Taxa de adiantamento (%)</Label>
-              <Input id="advance-fee" value={form.advanceFee} onChange={(e) => setForm((f) => ({ ...f, advanceFee: e.target.value }))} />
+              <Input
+                id="advance-fee"
+                value={form.advanceFee}
+                onChange={(e) => setForm((f) => ({ ...f, advanceFee: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="anticipation-margin">Margem de antecipação (%)</Label>
-              <Input id="anticipation-margin" value={form.anticipationMargin} onChange={(e) => setForm((f) => ({ ...f, anticipationMargin: e.target.value }))} />
+              <Input
+                id="anticipation-margin"
+                value={form.anticipationMargin}
+                onChange={(e) => setForm((f) => ({ ...f, anticipationMargin: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="hold-percent">Retenção por evento (%)</Label>
-              <Input id="hold-percent" value={form.holdPercent} onChange={(e) => setForm((f) => ({ ...f, holdPercent: e.target.value }))} />
+              <Input
+                id="hold-percent"
+                value={form.holdPercent}
+                onChange={(e) => setForm((f) => ({ ...f, holdPercent: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="hold-days">Retenção — dias até liberação</Label>
-              <Input id="hold-days" value={form.holdDays} onChange={(e) => setForm((f) => ({ ...f, holdDays: e.target.value }))} />
+              <Input
+                id="hold-days"
+                value={form.holdDays}
+                onChange={(e) => setForm((f) => ({ ...f, holdDays: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="payout-hours">Repasse (horas úteis)</Label>
-              <Input id="payout-hours" value={form.payoutHours} onChange={(e) => setForm((f) => ({ ...f, payoutHours: e.target.value }))} />
+              <Input
+                id="payout-hours"
+                value={form.payoutHours}
+                onChange={(e) => setForm((f) => ({ ...f, payoutHours: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="pix-advance-limit">Limite de adiantamento do Pix (%)</Label>
-              <Input id="pix-advance-limit" value={form.pixAdvanceLimit} onChange={(e) => setForm((f) => ({ ...f, pixAdvanceLimit: e.target.value }))} />
+              <Input
+                id="pix-advance-limit"
+                value={form.pixAdvanceLimit}
+                onChange={(e) => setForm((f) => ({ ...f, pixAdvanceLimit: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="cancel-fee">Taxa de cancelamento (%)</Label>
-              <Input id="cancel-fee" value={form.cancelFee} onChange={(e) => setForm((f) => ({ ...f, cancelFee: e.target.value }))} />
+              <Input
+                id="cancel-fee"
+                value={form.cancelFee}
+                onChange={(e) => setForm((f) => ({ ...f, cancelFee: e.target.value }))}
+              />
             </div>
             <div>
               <Label htmlFor="terms-version">Versão dos termos do produtor</Label>
-              <Input id="terms-version" value={form.termsVersion} onChange={(e) => setForm((f) => ({ ...f, termsVersion: e.target.value }))} />
+              <Input
+                id="terms-version"
+                value={form.termsVersion}
+                onChange={(e) => setForm((f) => ({ ...f, termsVersion: e.target.value }))}
+              />
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="cities-list">Cidades (separadas por vírgula)</Label>
-              <Input id="cities-list" value={form.cities} onChange={(e) => setForm((f) => ({ ...f, cities: e.target.value }))} />
+              <Input
+                id="cities-list"
+                value={form.cities}
+                onChange={(e) => setForm((f) => ({ ...f, cities: e.target.value }))}
+              />
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="genres-list">Gêneros (separados por vírgula)</Label>
-              <Input id="genres-list" value={form.genres} onChange={(e) => setForm((f) => ({ ...f, genres: e.target.value }))} />
+              <Input
+                id="genres-list"
+                value={form.genres}
+                onChange={(e) => setForm((f) => ({ ...f, genres: e.target.value }))}
+              />
             </div>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Novas taxas valem só para eventos criados a partir de agora.</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Novas taxas valem só para eventos criados a partir de agora.
+          </p>
           <Button className="mt-3" disabled={saving} onClick={saveSettings}>
             {saving ? "Salvando…" : "Salvar configurações"}
           </Button>
@@ -327,8 +405,15 @@ function AdminSettings() {
       )}
 
       <PanelCard title="E-mail de teste" className="mt-5">
-        <p className="text-sm text-muted-foreground">Envia um e-mail de teste através do Resend para validar a configuração de disparo.</p>
-        <Button className="mt-3" variant="outline" disabled={sendingTestEmail} onClick={sendTestEmail}>
+        <p className="text-sm text-muted-foreground">
+          Envia um e-mail de teste através do Resend para validar a configuração de disparo.
+        </p>
+        <Button
+          className="mt-3"
+          variant="outline"
+          disabled={sendingTestEmail}
+          onClick={sendTestEmail}
+        >
           {sendingTestEmail ? "Enviando…" : "Enviar e-mail de teste"}
         </Button>
       </PanelCard>
@@ -339,13 +424,21 @@ function AdminSettings() {
             <div>
               <p className="mb-2 text-sm font-bold">Cidades</p>
               <div className="flex flex-wrap gap-1">
-                {(settingsQuery.data.cities ?? []).map((c) => <Badge key={c} variant="secondary">{c}</Badge>)}
+                {(settingsQuery.data.cities ?? []).map((c) => (
+                  <Badge key={c} variant="secondary">
+                    {c}
+                  </Badge>
+                ))}
               </div>
             </div>
             <div>
               <p className="mb-2 text-sm font-bold">Gêneros</p>
               <div className="flex flex-wrap gap-1">
-                {(settingsQuery.data.genres ?? []).map((g) => <Badge key={g} variant="secondary">{g}</Badge>)}
+                {(settingsQuery.data.genres ?? []).map((g) => (
+                  <Badge key={g} variant="secondary">
+                    {g}
+                  </Badge>
+                ))}
               </div>
             </div>
           </div>
@@ -383,32 +476,66 @@ function AdminSettings() {
         </div>
 
         {bannersQuery.isError ? (
-          <ErrorState description="Não conseguimos carregar os banners." onRetry={() => bannersQuery.refetch()} />
+          <ErrorState
+            description="Não conseguimos carregar os banners."
+            onRetry={() => bannersQuery.refetch()}
+          />
         ) : bannersQuery.isLoading || !bannersQuery.data ? (
-          <div className="mt-4 space-y-2">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}</div>
+          <div className="mt-4 space-y-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full rounded-xl" />
+            ))}
+          </div>
         ) : (
           <div className="mt-4 space-y-3">
             {bannersQuery.data.map((banner, idx) => (
-              <div key={banner.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3">
+              <div
+                key={banner.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-3"
+              >
                 <div className="flex items-center gap-3">
-                  <img src={banner.image_url} alt="" className="h-14 w-24 rounded-lg object-cover" />
+                  <img
+                    src={banner.image_url}
+                    alt=""
+                    className="h-14 w-24 rounded-lg object-cover"
+                  />
                   <div>
                     <p className="text-sm font-bold capitalize">{banner.device}</p>
                     <p className="text-xs text-muted-foreground">Ordem: {banner.sort_order}</p>
                   </div>
-                  <Badge variant={banner.is_active ? "default" : "secondary"}>{banner.is_active ? "Ativo" : "Inativo"}</Badge>
+                  <Badge variant={banner.is_active ? "default" : "secondary"}>
+                    {banner.is_active ? "Ativo" : "Inativo"}
+                  </Badge>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" disabled={idx === 0} onClick={() => moveBanner(banner, -1)}>↑</Button>
-                  <Button size="sm" variant="outline" disabled={idx === bannersQuery.data.length - 1} onClick={() => moveBanner(banner, 1)}>↓</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={idx === 0}
+                    onClick={() => moveBanner(banner, -1)}
+                  >
+                    ↑
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={idx === bannersQuery.data.length - 1}
+                    onClick={() => moveBanner(banner, 1)}
+                  >
+                    ↓
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => toggleBanner(banner)}>
                     {banner.is_active ? "Desativar" : "Ativar"}
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={() => deleteBanner(banner)}>Excluir</Button>
+                  <Button size="sm" variant="destructive" onClick={() => deleteBanner(banner)}>
+                    Excluir
+                  </Button>
                 </div>
               </div>
             ))}
-            {bannersQuery.data.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum banner cadastrado ainda.</p> : null}
+            {bannersQuery.data.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum banner cadastrado ainda.</p>
+            ) : null}
           </div>
         )}
       </PanelCard>

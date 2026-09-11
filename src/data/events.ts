@@ -1,9 +1,23 @@
 import placeholderImage from "@/assets/event-electronic.jpg";
 import { lowestPrice, type PublicEvent } from "@/lib/queries";
+import { safeImageSrc } from "@/lib/safe-url";
 
 export type { PublicEvent };
 
-const monthShort = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+const monthShort = [
+  "JAN",
+  "FEV",
+  "MAR",
+  "ABR",
+  "MAI",
+  "JUN",
+  "JUL",
+  "AGO",
+  "SET",
+  "OUT",
+  "NOV",
+  "DEZ",
+];
 const weekdays = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 export function eventDate(event: Pick<PublicEvent, "starts_at">): Date | null {
@@ -37,14 +51,15 @@ export function eventFullDate(event: PublicEvent): string {
 }
 
 export function eventImage(event: PublicEvent): string {
-  return event.banner_url || placeholderImage;
+  return safeImageSrc(event.banner_url) ?? placeholderImage;
 }
 
 export function eventPrice(event: PublicEvent): number | null {
   return lowestPrice(event.lots);
 }
 
-const startOfDay = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
+const startOfDay = (value: Date) =>
+  new Date(value.getFullYear(), value.getMonth(), value.getDate());
 
 export const isToday = (isoDate: string | null | undefined): boolean => {
   if (!isoDate) return false;
@@ -75,7 +90,8 @@ export const dateFilters = [
   { id: "mes", label: "Este mês" },
 ];
 
-export const priceBucket = (price: number) => (price <= 50 ? priceFilters[0]! : price <= 100 ? priceFilters[1]! : priceFilters[2]!);
+export const priceBucket = (price: number) =>
+  price <= 50 ? priceFilters[0]! : price <= 100 ? priceFilters[1]! : priceFilters[2]!;
 
 export type EventFilterState = {
   q: string;
@@ -91,7 +107,8 @@ export const emptyFilters: EventFilterState = { q: "", city: "", genres: [], pri
 export function filterEvents(events: PublicEvent[], state: EventFilterState): PublicEvent[] {
   return events
     .filter((event) => {
-      const haystack = `${event.title} ${event.venue_name ?? ""} ${event.genre ?? ""} ${event.city ?? ""} ${event.neighborhood ?? ""}`.toLowerCase();
+      const haystack =
+        `${event.title} ${event.venue_name ?? ""} ${event.genre ?? ""} ${event.city ?? ""} ${event.neighborhood ?? ""}`.toLowerCase();
       if (state.q && !haystack.includes(state.q.toLowerCase())) return false;
       if (state.city && event.city !== state.city) return false;
       if (state.genres.length && !(event.genre && state.genres.includes(event.genre))) return false;

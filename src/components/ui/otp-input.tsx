@@ -1,6 +1,14 @@
 import { useRef } from "react";
 
-export function OTPInput({ value, onChange, length = 6 }: { value: string; onChange: (value: string) => void; length?: number }) {
+export function OTPInput({
+  value,
+  onChange,
+  length = 6,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  length?: number;
+}) {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   const setRef = (index: number) => (el: HTMLInputElement | null) => {
@@ -11,7 +19,10 @@ export function OTPInput({ value, onChange, length = 6 }: { value: string; onCha
     const digit = raw.replace(/\D/g, "").slice(-1);
     const next = value.split("");
     next[index] = digit;
-    const joined = next.slice(0, length).join("").replace(/undefined/g, "");
+    const joined = next
+      .slice(0, length)
+      .join("")
+      .replace(/undefined/g, "");
     onChange(joined);
     if (digit && index < length - 1) {
       inputsRef.current[index + 1]?.focus();

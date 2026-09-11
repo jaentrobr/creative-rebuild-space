@@ -4,24 +4,25 @@ Regras: proibido Lovable Cloud; banco criado manualmente via SQL (não criar mig
 service_role nunca no front; papéis sempre de `user_roles`; checkout pago fica para depois (Asaas).
 
 ## Concluído
-- [x] Ajustar banner desktop, aviso de cookies e tipografia do rodapé
-- [x] Banco do usuário verificado (23 tabelas + RPCs)
-- [x] Tipos TypeScript gerados do schema real (`src/integrations/meu-supabase/types.ts`)
-- [x] Cliente tipado (`src/integrations/meu-supabase/client.ts`), `AuthProvider` (`src/lib/auth.tsx`),
-      `RequireAuth` e helpers públicos (`src/lib/queries.ts`)
+- [x] Banco do usuário verificado (23 tabelas + RPCs) e tipos gerados do schema real
+- [x] Autenticação, site público, produtor, comprador, portaria e admin ligados ao Supabase real
+- [x] v2 alteração de data (produtor, comprador, admin, notificações)
+- [x] v3 remoção de telefone do comprador + contato do produtor
+- [x] Banner desktop, aviso de cookies e tipografia do rodapé
 
-## Em andamento (agentes)
-- [ ] 1. Autenticação real + minha conta + header
-- [ ] 2. Site público com dados reais (home, /eventos, /evento/$slug, banners)
-- [ ] 3. Painel do produtor real
-- [ ] 4. Área do comprador + portaria real
-- [ ] 5. Admin real
+## Revisão v4 (em andamento)
+- [x] Base compartilhada: `src/config/security.ts`, `src/lib/safe-url.ts`,
+      `src/lib/friendly-error.ts`, `src/lib/uploads.ts`, `src/components/captcha.tsx`
+- [x] robots.txt bloqueando áreas privadas
+- [x] `vercel.json` com CSP, HSTS e demais cabeçalhos de segurança
+- [x] Imagens só do Storage (safeImageSrc) e links de markdown sanitizados
+- [ ] Telas de acesso: captcha, zod, redirect seguro, mensagens neutras (agente)
+- [ ] Admin: MFA TOTP aal2, logout por inatividade, /admin/diagnostico (agente)
+- [ ] Produtor: zod, uploads, clique duplo, tratamento de erros (agente)
+- [ ] Comprador + portaria: clique duplo, erros, limpeza de sessão/IndexedDB (agente)
+- [ ] Edge Functions: auth, zod, CORS, escapes, limites de abuso, health-check (agente)
+- [ ] Fechamento: meta noindex nas áreas privadas, remoção de código morto, typecheck/lint/build
 
-## Pendente
-- [ ] 6. Edge Functions `create-staff-user` e `issue-tickets` (deploy manual no Supabase do usuário;
-      secrets RESEND_API_KEY e SITE_URL) — bloqueado: exige deploy pelo usuário
-- [ ] 7. Checkout pago via Asaas — fora de escopo por decisão do projeto
-
-- [x] Corrigir todos os erros de typecheck/build
-
-- [ ] v2 alteração de data: corrigir todos os erros de typecheck/build ao final
+## Depende do usuário
+- [ ] Deploy manual das Edge Functions no Supabase dele (secrets RESEND_API_KEY e SITE_URL)
+- [ ] Checkout pago via Asaas — fora de escopo por decisão do projeto

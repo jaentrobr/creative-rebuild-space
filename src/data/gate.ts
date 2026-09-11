@@ -66,7 +66,8 @@ export function normalizeCheckinResponse(raw: unknown): CheckinResponse {
     result,
     ticket,
     usedAt: (pick(o, ["used_at", "usedAt", "scanned_at"]) as string | undefined) ?? null,
-    otherEventName: (pick(o, ["event_title", "other_event_name", "eventName"]) as string | undefined) ?? null,
+    otherEventName:
+      (pick(o, ["event_title", "other_event_name", "eventName"]) as string | undefined) ?? null,
   };
 }
 

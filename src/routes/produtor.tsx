@@ -5,7 +5,11 @@ import { useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useAcceptProducerTerms, usePlatformSettings, useProducerTermsAcceptance } from "@/lib/producer-queries";
+import {
+  useAcceptProducerTerms,
+  usePlatformSettings,
+  useProducerTermsAcceptance,
+} from "@/lib/producer-queries";
 
 export const Route = createFileRoute("/produtor")({
   component: () => (
@@ -51,8 +55,11 @@ function TermsBanner() {
     <div className="border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p>
-          Os Termos do Produtor foram atualizados (versão {currentVersion}), incluindo as regras de alteração de data do evento.{" "}
-          <Link to="/termos-produtor" className="font-semibold underline">Ler os termos</Link>
+          Os Termos do Produtor foram atualizados (versão {currentVersion}), incluindo as regras de
+          alteração de data do evento.{" "}
+          <Link to="/termos-produtor" className="font-semibold underline">
+            Ler os termos
+          </Link>
         </p>
         <Button
           size="sm"
@@ -60,7 +67,10 @@ function TermsBanner() {
           onClick={() =>
             accept.mutate(currentVersion, {
               onSuccess: () => toast.success("Termos aceitos."),
-              onError: (error) => toast.error(error instanceof Error ? error.message : "Não foi possível registrar o aceite."),
+              onError: (error) =>
+                toast.error(
+                  error instanceof Error ? error.message : "Não foi possível registrar o aceite.",
+                ),
             })
           }
         >

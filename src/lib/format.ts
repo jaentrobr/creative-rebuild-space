@@ -13,7 +13,13 @@ export const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 export const shortDateTime = (iso: string) =>
-  new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 export const maskPhone = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -60,7 +66,13 @@ export const validateDate = (value: string) => {
   const year = Number(parts[2]);
   if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) return false;
   const date = new Date(year, month - 1, day);
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day && year >= 1900 && year <= new Date().getFullYear();
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day &&
+    year >= 1900 &&
+    year <= new Date().getFullYear()
+  );
 };
 
 export const passwordRules = (password: string) => ({

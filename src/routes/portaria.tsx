@@ -16,7 +16,10 @@ export const Route = createFileRoute("/portaria")({
   head: () => ({
     meta: [
       { title: "Portaria | Entrô" },
-      { name: "description", content: "Leitor de QR Code e controle de entrada para a equipe de portaria da Entrô." },
+      {
+        name: "description",
+        content: "Leitor de QR Code e controle de entrada para a equipe de portaria da Entrô.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -29,10 +32,16 @@ function PortariaPage() {
   const [manualResult, setManualResult] = useState<ScanResult | null>(null);
 
   useEffect(() => {
-    if (gate.signedIn && gate.downloaded && screen === "prepare") {
-      // stay on prepare until user chooses to open scanner
-    }
-  }, [gate.signedIn]);
+    void gateActions.init();
+  }, []);
+
+  if (gate.loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0E0717] text-sm font-bold text-white/60">
+        Carregando…
+      </div>
+    );
+  }
 
   if (!gate.signedIn) {
     return <LoginScreen />;
@@ -64,7 +73,9 @@ function PortariaPage() {
         {screen === "history" && <HistoryScreen />}
       </div>
 
-      {manualResult && <ResultOverlay result={manualResult} onClose={() => setManualResult(null)} />}
+      {manualResult && (
+        <ResultOverlay result={manualResult} onClose={() => setManualResult(null)} />
+      )}
 
       {gate.logoutBlocked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">

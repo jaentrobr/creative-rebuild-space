@@ -41,7 +41,9 @@ export function PrepareScreen({ onOpenScanner }: { onOpenScanner: () => void }) 
         {gate.downloading ? (
           <div className="mt-4 space-y-2">
             <Progress value={gate.downloadProgress} className="h-3" />
-            <p className="text-sm font-bold text-white/70">Baixando... {Math.round(gate.downloadProgress)}%</p>
+            <p className="text-sm font-bold text-white/70">
+              Baixando... {Math.round(gate.downloadProgress)}%
+            </p>
           </div>
         ) : (
           <button
@@ -73,7 +75,9 @@ export function PrepareScreen({ onOpenScanner }: { onOpenScanner: () => void }) 
           Abrir leitor de QR ({total} ingressos)
         </button>
         {!gate.downloaded && (
-          <p className="mt-2 text-center text-xs font-semibold text-white/50">Baixe a lista para liberar o leitor.</p>
+          <p className="mt-2 text-center text-xs font-semibold text-white/50">
+            Baixe a lista para liberar o leitor.
+          </p>
         )}
       </div>
     </div>

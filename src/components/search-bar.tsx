@@ -21,12 +21,19 @@ export function SearchBar({ initial = "" }: { initial?: string }) {
     >
       <label className="flex min-w-0 flex-1 items-center gap-2 px-3">
         <Search className="size-5 shrink-0 text-primary" />
-        <Input value={term} onChange={(event) => setTerm(event.target.value)} placeholder="Qual vai ser o rolê?" className="h-12 border-0 shadow-none focus-visible:ring-0" />
+        <Input
+          value={term}
+          onChange={(event) => setTerm(event.target.value)}
+          placeholder="Qual vai ser o rolê?"
+          className="h-12 border-0 shadow-none focus-visible:ring-0"
+        />
       </label>
       <div className="flex h-12 items-center justify-center border-t border-border px-3 sm:h-auto sm:border-l sm:border-t-0">
         <CitySelect />
       </div>
-      <Button size="lg" type="submit">Buscar</Button>
+      <Button size="lg" type="submit">
+        Buscar
+      </Button>
     </form>
   );
 }

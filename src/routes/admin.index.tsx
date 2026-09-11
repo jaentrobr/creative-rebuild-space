@@ -10,7 +10,12 @@ import { db } from "@/integrations/meu-supabase/client";
 import { brl, intBr } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/")({
-  head: () => ({ meta: [{ title: "Visão geral — Admin Entrô" }, { name: "robots", content: "noindex, nofollow" }] }),
+  head: () => ({
+    meta: [
+      { title: "Visão geral — Admin Entrô" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: AdminHome,
 });
 
@@ -35,19 +40,35 @@ function useDashboardData(sinceIso: string) {
   return useQuery({
     queryKey: ["admin-dashboard", sinceIso],
     queryFn: async () => {
-      const [ordersRes, eventsCountRes, producersCountRes, blockedRes, chargebacksRes, rejectedRes, lotsRes] = await Promise.all([
+      const [
+        ordersRes,
+        eventsCountRes,
+        producersCountRes,
+        blockedRes,
+        chargebacksRes,
+        rejectedRes,
+        lotsRes,
+      ] = await Promise.all([
         db
           .from("orders")
-          .select("id, total, service_fee, payment_method, paid_at, event_id, events(title, producer_id, producers(display_name))")
+          .select(
+            "id, total, service_fee, payment_method, paid_at, event_id, events(title, producer_id, producers(display_name))",
+          )
           .eq("status", "paid")
           .gte("paid_at", sinceIso)
           .order("paid_at", { ascending: false })
           .limit(2000),
         db.from("events").select("id", { count: "exact", head: true }).eq("status", "published"),
         db.from("producers").select("id", { count: "exact", head: true }),
-        db.from("producer_private").select("producer_id", { count: "exact", head: true }).eq("is_blocked", true),
+        db
+          .from("producer_private")
+          .select("producer_id", { count: "exact", head: true })
+          .eq("is_blocked", true),
         db.from("chargebacks").select("id", { count: "exact", head: true }).eq("status", "open"),
-        db.from("producer_private").select("producer_id", { count: "exact", head: true }).eq("verification_status", "rejected"),
+        db
+          .from("producer_private")
+          .select("producer_id", { count: "exact", head: true })
+          .eq("verification_status", "rejected"),
         db.from("lots").select("sold_count"),
       ]);
       if (ordersRes.error) throw ordersRes.error;
@@ -85,13 +106,20 @@ function AdminHome() {
     const orders = data.orders;
     const volume = orders.reduce((s, o) => s + Number(o.total), 0);
     const feeRevenue = orders.reduce((s, o) => s + Number(o.service_fee), 0);
-    const pixRevenue = orders.filter((o) => o.payment_method === "pix").reduce((s, o) => s + Number(o.service_fee), 0);
-    const cardRevenue = orders.filter((o) => o.payment_method === "credit_card").reduce((s, o) => s + Number(o.service_fee), 0);
+    const pixRevenue = orders
+      .filter((o) => o.payment_method === "pix")
+      .reduce((s, o) => s + Number(o.service_fee), 0);
+    const cardRevenue = orders
+      .filter((o) => o.payment_method === "credit_card")
+      .reduce((s, o) => s + Number(o.service_fee), 0);
 
     const byDay = new Map<string, number>();
     for (const o of orders) {
       if (!o.paid_at) continue;
-      const key = new Date(o.paid_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      const key = new Date(o.paid_at).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+      });
       byDay.set(key, (byDay.get(key) ?? 0) + Number(o.total));
     }
     const chartData = Array.from(byDay.entries())
@@ -112,24 +140,39 @@ function AdminHome() {
       eventCurrent.volume += Number(o.total);
       byEvent.set(o.event_id, eventCurrent);
     }
-    const topProducers = Array.from(byProducer.values()).sort((a, b) => b.volume - a.volume).slice(0, 5);
-    const topEvents = Array.from(byEvent.values()).sort((a, b) => b.volume - a.volume).slice(0, 5);
+    const topProducers = Array.from(byProducer.values())
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 5);
+    const topEvents = Array.from(byEvent.values())
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 5);
 
     return { volume, feeRevenue, pixRevenue, cardRevenue, chartData, topProducers, topEvents };
   }, [data]);
 
   return (
-    <AdminLayout title="Visão geral" description="Números consolidados da plataforma Entrô, calculados a partir do banco.">
+    <AdminLayout
+      title="Visão geral"
+      description="Números consolidados da plataforma Entrô, calculados a partir do banco."
+    >
       <div className="mb-4 flex flex-wrap gap-2">
         {periods.map((p) => (
-          <Button key={p.value} size="sm" variant={period === p.value ? "default" : "outline"} onClick={() => setPeriod(p.value)}>
+          <Button
+            key={p.value}
+            size="sm"
+            variant={period === p.value ? "default" : "outline"}
+            onClick={() => setPeriod(p.value)}
+          >
             {p.label}
           </Button>
         ))}
       </div>
 
       {isError ? (
-        <ErrorState description="Não conseguimos carregar os números do painel." onRetry={() => refetch()} />
+        <ErrorState
+          description="Não conseguimos carregar os números do painel."
+          onRetry={() => refetch()}
+        />
       ) : isLoading || !data || !stats ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -153,14 +196,22 @@ function AdminHome() {
             {stats.chartData.length > 0 ? (
               <SalesChart data={stats.chartData} />
             ) : (
-              <p className="text-sm text-muted-foreground">Nenhuma venda paga nesse período ainda.</p>
+              <p className="text-sm text-muted-foreground">
+                Nenhuma venda paga nesse período ainda.
+              </p>
             )}
           </PanelCard>
 
           <PanelCard title="Receita de taxas por forma de pagamento" className="mt-5">
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span>Taxa Pix</span><strong>{brl(stats.pixRevenue)}</strong></div>
-              <div className="flex justify-between"><span>Taxa cartão</span><strong>{brl(stats.cardRevenue)}</strong></div>
+              <div className="flex justify-between">
+                <span>Taxa Pix</span>
+                <strong>{brl(stats.pixRevenue)}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>Taxa cartão</span>
+                <strong>{brl(stats.cardRevenue)}</strong>
+              </div>
             </div>
           </PanelCard>
 
@@ -168,17 +219,27 @@ function AdminHome() {
             <PanelCard title="Top produtores por volume">
               <div className="divide-y divide-border text-sm">
                 {stats.topProducers.map((p, i) => (
-                  <div key={i} className="flex justify-between py-2"><span>{p.name}</span><strong>{brl(p.volume)}</strong></div>
+                  <div key={i} className="flex justify-between py-2">
+                    <span>{p.name}</span>
+                    <strong>{brl(p.volume)}</strong>
+                  </div>
                 ))}
-                {stats.topProducers.length === 0 ? <p className="py-2 text-muted-foreground">Nenhuma venda no período.</p> : null}
+                {stats.topProducers.length === 0 ? (
+                  <p className="py-2 text-muted-foreground">Nenhuma venda no período.</p>
+                ) : null}
               </div>
             </PanelCard>
             <PanelCard title="Top eventos por volume">
               <div className="divide-y divide-border text-sm">
                 {stats.topEvents.map((e, i) => (
-                  <div key={i} className="flex justify-between py-2"><span>{e.name}</span><strong>{brl(e.volume)}</strong></div>
+                  <div key={i} className="flex justify-between py-2">
+                    <span>{e.name}</span>
+                    <strong>{brl(e.volume)}</strong>
+                  </div>
                 ))}
-                {stats.topEvents.length === 0 ? <p className="py-2 text-muted-foreground">Nenhuma venda no período.</p> : null}
+                {stats.topEvents.length === 0 ? (
+                  <p className="py-2 text-muted-foreground">Nenhuma venda no período.</p>
+                ) : null}
               </div>
             </PanelCard>
           </div>

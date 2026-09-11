@@ -32,7 +32,9 @@ export async function downloadTicketPdf(ticket: Tables<"tickets">, event: Tables
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  const startsAt = event.starts_at ? new Date(event.starts_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Data a confirmar";
+  const startsAt = event.starts_at
+    ? new Date(event.starts_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+    : "Data a confirmar";
   doc.text(startsAt, margin, y);
   y += 6;
   doc.text(`${event.venue_name ?? ""}${event.city ? `, ${event.city}` : ""}`, margin, y);
@@ -57,7 +59,11 @@ export async function downloadTicketPdf(ticket: Tables<"tickets">, event: Tables
   doc.text(`Código: ${ticket.qr_token}`, margin, y);
   y += 12;
 
-  const qrDataUrl = await QRCode.toDataURL(ticket.qr_token, { width: 160, margin: 1, color: { dark: "#171717", light: "#ffffff" } });
+  const qrDataUrl = await QRCode.toDataURL(ticket.qr_token, {
+    width: 160,
+    margin: 1,
+    color: { dark: "#171717", light: "#ffffff" },
+  });
   const qrSize = 50;
   const x = (width - qrSize) / 2;
   doc.addImage(qrDataUrl, "PNG", x, y, qrSize, qrSize);
@@ -66,7 +72,8 @@ export async function downloadTicketPdf(ticket: Tables<"tickets">, event: Tables
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
   doc.setFont("helvetica", "italic");
-  const footer = "Apresente este QR code na portaria. Em caso de meia-entrada, leve o documento comprovante.";
+  const footer =
+    "Apresente este QR code na portaria. Em caso de meia-entrada, leve o documento comprovante.";
   doc.text(footer, margin, y, { maxWidth: width - margin * 2 });
 
   doc.save(`ingresso-${ticket.qr_token}.pdf`);

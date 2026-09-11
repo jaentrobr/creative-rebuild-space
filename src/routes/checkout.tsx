@@ -1,7 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import { AlertTriangle, Loader2, LogIn, ShieldCheck, Tag, Ticket as TicketIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  Loader2,
+  LogIn,
+  ShieldCheck,
+  Tag,
+  Ticket as TicketIcon,
+} from "lucide-react";
 import { db } from "@/integrations/meu-supabase/client";
 import type { Tables } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
@@ -150,7 +157,10 @@ function CheckoutPage() {
     return [];
   }, [event, selectionMap, search.total, search.half]);
 
-  const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.price * item.qty, 0), [items]);
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.qty, 0),
+    [items],
+  );
   const hasHalf = items.some((item) => item.half && item.qty > 0);
 
   const discount = useMemo(() => {
@@ -164,9 +174,15 @@ function CheckoutPage() {
   const fee = useMemo(() => {
     if (!event || discountedSubtotal <= 0) return 0;
     if (method === "pix") {
-      return Math.max(Number(event.fee_pix_min ?? 0), discountedSubtotal * (Number(event.fee_pix_percent ?? 0) / 100));
+      return Math.max(
+        Number(event.fee_pix_min ?? 0),
+        discountedSubtotal * (Number(event.fee_pix_percent ?? 0) / 100),
+      );
     }
-    return Math.max(Number(event.fee_card_min ?? 0), discountedSubtotal * (Number(event.fee_card_percent ?? 0) / 100));
+    return Math.max(
+      Number(event.fee_card_min ?? 0),
+      discountedSubtotal * (Number(event.fee_card_percent ?? 0) / 100),
+    );
   }, [event, discountedSubtotal, method]);
 
   const feePaidByBuyer = event?.fee_payer !== "producer";
@@ -184,7 +200,10 @@ function CheckoutPage() {
     if (!event || !couponCode.trim()) return;
     setCouponLoading(true);
     setCouponError("");
-    const { data, error } = await db.rpc("validate_coupon", { p_event_id: event.id, p_code: couponCode.trim() });
+    const { data, error } = await db.rpc("validate_coupon", {
+      p_event_id: event.id,
+      p_code: couponCode.trim(),
+    });
     setCouponLoading(false);
     if (error) {
       setCouponError("Não foi possível validar o cupom agora.");
@@ -222,7 +241,9 @@ function CheckoutPage() {
     return (
       <PageShell className="max-w-2xl text-center">
         <h1 className="text-3xl font-bold">Evento não encontrado</h1>
-        <p className="mt-3 text-muted-foreground">{eventError || "Verifique o link e tente novamente."}</p>
+        <p className="mt-3 text-muted-foreground">
+          {eventError || "Verifique o link e tente novamente."}
+        </p>
         <Button asChild size="lg" className="mt-8">
           <Link to="/">Ver eventos</Link>
         </Button>
@@ -248,7 +269,10 @@ function CheckoutPage() {
             ) : (
               <div className="mt-4 divide-y divide-border">
                 {items.map((item) => (
-                  <div key={item.key} className="flex items-center justify-between gap-3 py-3 text-sm">
+                  <div
+                    key={item.key}
+                    className="flex items-center justify-between gap-3 py-3 text-sm"
+                  >
                     <div>
                       <p className="font-semibold">{item.name}</p>
                       <p className="text-muted-foreground">
@@ -278,12 +302,19 @@ function CheckoutPage() {
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
               />
-              <Button type="button" variant="outline" onClick={applyCoupon} disabled={couponLoading || !couponCode.trim()}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={applyCoupon}
+                disabled={couponLoading || !couponCode.trim()}
+              >
                 {couponLoading ? <Loader2 className="size-4 animate-spin" /> : "Aplicar"}
               </Button>
             </div>
             {coupon && <p className="mt-2 text-sm font-semibold text-primary">{coupon.message}</p>}
-            {couponError && <p className="mt-2 text-sm font-semibold text-destructive">{couponError}</p>}
+            {couponError && (
+              <p className="mt-2 text-sm font-semibold text-destructive">{couponError}</p>
+            )}
           </section>
 
           <section className="rounded-xl border border-border bg-card p-5">
@@ -296,7 +327,8 @@ function CheckoutPage() {
               >
                 <strong>Pix</strong>
                 <p className="text-sm text-muted-foreground">
-                  Taxa de {Number(event.fee_pix_percent ?? 0)}% (mín. {brl(Number(event.fee_pix_min ?? 0))})
+                  Taxa de {Number(event.fee_pix_percent ?? 0)}% (mín.{" "}
+                  {brl(Number(event.fee_pix_min ?? 0))})
                 </p>
               </button>
               <button
@@ -306,12 +338,15 @@ function CheckoutPage() {
               >
                 <strong>Cartão</strong>
                 <p className="text-sm text-muted-foreground">
-                  Taxa de {Number(event.fee_card_percent ?? 0)}% (mín. {brl(Number(event.fee_card_min ?? 0))})
+                  Taxa de {Number(event.fee_card_percent ?? 0)}% (mín.{" "}
+                  {brl(Number(event.fee_card_min ?? 0))})
                 </p>
               </button>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
-              {feePaidByBuyer ? "A taxa de serviço é paga pelo comprador." : "A taxa de serviço é paga pelo produtor deste evento."}
+              {feePaidByBuyer
+                ? "A taxa de serviço é paga pelo comprador."
+                : "A taxa de serviço é paga pelo produtor deste evento."}
             </p>
           </section>
 
@@ -320,7 +355,8 @@ function CheckoutPage() {
               <AlertTriangle className="size-5 text-primary" /> Pagamento ainda não disponível
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Estamos finalizando a integração de pagamentos. Por enquanto não é possível concluir a compra nesta tela.
+              Estamos finalizando a integração de pagamentos. Por enquanto não é possível concluir a
+              compra nesta tela.
             </p>
           </section>
         </div>
@@ -359,13 +395,19 @@ function CheckoutPage() {
               </Button>
             </div>
           ) : (
-            <Button className="mt-5 w-full" size="lg" disabled title="Pagamento ainda não disponível">
+            <Button
+              className="mt-5 w-full"
+              size="lg"
+              disabled
+              title="Pagamento ainda não disponível"
+            >
               Pagamento ainda não disponível
             </Button>
           )}
 
           <p className="mt-5 flex gap-2 text-xs text-muted-foreground">
-            <ShieldCheck className="size-4 shrink-0" /> Seus dados estão protegidos. Nenhuma cobrança é feita nesta etapa.
+            <ShieldCheck className="size-4 shrink-0" /> Seus dados estão protegidos. Nenhuma
+            cobrança é feita nesta etapa.
           </p>
         </aside>
       </div>

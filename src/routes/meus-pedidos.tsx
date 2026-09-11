@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Download, Package } from "lucide-react";
+import { ChevronDown, Download, Loader2, Package } from "lucide-react";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +18,10 @@ export const Route = createFileRoute("/meus-pedidos")({
   head: () => ({
     meta: [
       { title: "Meus pedidos — Entrô" },
-      { name: "description", content: "Histórico de pedidos com valores, taxas e forma de pagamento." },
+      {
+        name: "description",
+        content: "Histórico de pedidos com valores, taxas e forma de pagamento.",
+      },
       { property: "og:title", content: "Meus pedidos — Entrô" },
       { property: "og:description", content: "Acompanhe suas compras na Entrô." },
       { property: "og:type", content: "website" },
@@ -103,7 +108,9 @@ function OrdersPage() {
 
       {!isLoading && !isError && orders.length === 0 && (
         <div className="mt-12 text-center">
-          <div className="mx-auto grid size-16 place-items-center rounded-full bg-secondary"><Package className="size-7 text-primary" /></div>
+          <div className="mx-auto grid size-16 place-items-center rounded-full bg-secondary">
+            <Package className="size-7 text-primary" />
+          </div>
           <p className="mt-4 font-bold">Você ainda não fez nenhum pedido</p>
         </div>
       )}
@@ -111,7 +118,12 @@ function OrdersPage() {
       {!isLoading && !isError && orders.length > 0 && (
         <div className="mt-7 grid gap-3">
           {orders.map((order) => (
-            <OrderRow key={order.id} order={order} expanded={open === order.id} onToggle={() => setOpen(open === order.id ? null : order.id)} />
+            <OrderRow
+              key={order.id}
+              order={order}
+              expanded={open === order.id}
+              onToggle={() => setOpen(open === order.id ? null : order.id)}
+            />
           ))}
         </div>
       )}
@@ -119,47 +131,101 @@ function OrdersPage() {
   );
 }
 
-function OrderRow({ order, expanded, onToggle }: { order: OrderWithEvent; expanded: boolean; onToggle: () => void }) {
-  const { data: orderTickets } = useOrderTickets(order.id, expanded);
+function OrderRow({
+  order,
+  expanded,
+  onToggle,
+}: {
+  order: OrderWithEvent;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const { data: orderTickets, isError: ticketsError } = useOrderTickets(order.id, expanded);
   const tickets = orderTickets ?? [];
   const downloadable = tickets.filter((t) => t.status === "valid" || t.status === "used");
+  const [downloading, setDownloading] = useState(false);
 
   return (
     <div className="rounded-xl border border-border bg-card">
       <button className="flex w-full items-center gap-3 p-4 text-left" onClick={onToggle}>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-extrabold uppercase text-primary">{order.code} · {shortDate(order.created_at)}</p>
+          <p className="text-xs font-extrabold uppercase text-primary">
+            {order.code} · {shortDate(order.created_at)}
+          </p>
           <p className="truncate text-lg font-bold">{order.events?.title ?? "Evento"}</p>
-          <p className="text-sm text-muted-foreground">{paymentLabel[order.payment_method] ?? order.payment_method}</p>
+          <p className="text-sm text-muted-foreground">
+            {paymentLabel[order.payment_method] ?? order.payment_method}
+          </p>
         </div>
         <strong className="shrink-0">{brl(Number(order.total))}</strong>
-        <ChevronDown className={`size-5 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`size-5 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
       </button>
       {expanded && (
         <div className="grid gap-3 border-t border-border p-4 text-sm">
           <div className="grid gap-1">
-            <p className="flex justify-between"><span className="text-muted-foreground">Ingressos</span><span>{brl(Number(order.subtotal))}</span></p>
-            <p className="flex justify-between"><span className="text-muted-foreground">Taxa de serviço</span><span>{brl(Number(order.service_fee))}</span></p>
-            {Number(order.discount) > 0 && <p className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span>-{brl(Number(order.discount))}</span></p>}
-            <p className="flex justify-between font-bold"><span>Total</span><span>{brl(Number(order.total))}</span></p>
+            <p className="flex justify-between">
+              <span className="text-muted-foreground">Ingressos</span>
+              <span>{brl(Number(order.subtotal))}</span>
+            </p>
+            <p className="flex justify-between">
+              <span className="text-muted-foreground">Taxa de serviço</span>
+              <span>{brl(Number(order.service_fee))}</span>
+            </p>
+            {Number(order.discount) > 0 && (
+              <p className="flex justify-between">
+                <span className="text-muted-foreground">Desconto</span>
+                <span>-{brl(Number(order.discount))}</span>
+              </p>
+            )}
+            <p className="flex justify-between font-bold">
+              <span>Total</span>
+              <span>{brl(Number(order.total))}</span>
+            </p>
           </div>
+          {ticketsError && (
+            <p className="text-sm font-semibold text-destructive">
+              Não foi possível carregar os ingressos deste pedido.
+            </p>
+          )}
           {downloadable.length > 0 && (
             <Button
               variant="outline"
               className="w-full gap-2"
+              disabled={downloading}
               onClick={async () => {
-                for (const ticket of downloadable) {
-                  if (ticket.events) await downloadTicketPdf(ticket, ticket.events);
+                setDownloading(true);
+                try {
+                  for (const ticket of downloadable) {
+                    if (ticket.events) await downloadTicketPdf(ticket, ticket.events);
+                  }
+                } catch (error) {
+                  toast.error(friendlyError(error as Error, "Não foi possível gerar o PDF agora."));
+                } finally {
+                  setDownloading(false);
                 }
               }}
             >
-              <Download className="size-4" /> Baixar todos os ingressos (PDF)
+              {downloading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Download className="size-4" />
+              )}
+              Baixar todos os ingressos (PDF)
             </Button>
           )}
           <div className="grid gap-2">
             {tickets.map((ticket) => (
-              <Link key={ticket.id} to="/meus-ingressos/$id" params={{ id: ticket.id }} className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2 font-semibold">
-                <span>{ticket.ticket_types?.name ?? "Ingresso"} · {ticket.lots?.name ?? ""}</span>
+              <Link
+                key={ticket.id}
+                to="/meus-ingressos/$id"
+                params={{ id: ticket.id }}
+                className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2 font-semibold"
+              >
+                <span>
+                  {ticket.ticket_types?.name ?? "Ingresso"} · {ticket.lots?.name ?? ""}
+                </span>
                 <span className="text-primary">{ticket.status} →</span>
               </Link>
             ))}
