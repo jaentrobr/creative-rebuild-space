@@ -307,3 +307,4 @@
 | Prazo para documentos de Chargeback | 5 dias corridos |
 | Prazo para quitar Saldo Negativo | 5 dias úteis após notificação |
 | Aviso de alteração de taxas | 30 dias |
+| Alteração de data do Evento | 1 vez após a primeira venda, com nova data em até 90 dias após a data prevista; comprador pode manter o ingresso ou pedir reembolso integral até o início do Evento |
