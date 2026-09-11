@@ -6,11 +6,11 @@ import { LINHA_EMPRESA } from "@/config/empresa";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-ink text-primary-foreground">
+    <footer className="bg-ink text-primary-foreground">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-4">
         <div>
           <img src={logo.url} alt="Entrô" className="h-16 w-auto" />
-          <p className="mt-3 max-w-xs font-display text-base font-semibold text-primary-foreground/80">Seu próximo rolê começa aqui.</p>
+          <p className="mt-3 max-w-xs font-display text-base font-bold text-primary-foreground/80">Seu próximo rolê começa aqui.</p>
         </div>
         <div>
           <p className="mb-3 font-display text-lg font-extrabold">Descubra</p>
