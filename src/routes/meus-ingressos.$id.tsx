@@ -40,7 +40,7 @@ const RESCHEDULE_ERROR_MESSAGES: Record<string, string> = {
 function translateRescheduleError(message: string | undefined | null): string {
   if (!message) return "Ocorreu um erro. Tente novamente.";
   const key = Object.keys(RESCHEDULE_ERROR_MESSAGES).find((k) => message.includes(k));
-  return key ? RESCHEDULE_ERROR_MESSAGES[key] : message;
+  return key ? RESCHEDULE_ERROR_MESSAGES[key]! : message;
 }
 
 export const Route = createFileRoute("/meus-ingressos/$id")({
