@@ -22,7 +22,7 @@ export function SiteFooter() {
         </div>
         <div>
           <p className="mb-3 font-display text-lg font-extrabold">Ajuda</p>
-          <nav className="grid content-start gap-3 text-sm text-primary-foreground/80">
+          <nav className="grid content-start gap-3 text-sm font-bold text-primary-foreground/80">
             <Link to="/ajuda">Central de ajuda</Link>
             <Link to="/termos">Termos de uso</Link>
             <Link to="/privacidade">Política de privacidade</Link>
