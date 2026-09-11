@@ -70,6 +70,21 @@ function ManageEvent() {
   const { id } = Route.useParams();
   const store = useProducer();
   const event = store.events.find((item) => item.id === id);
+  const { producer } = useAuth();
+  const { data: realEvent } = useEvent(id);
+  const { data: ticketTypesReal } = useEventTicketTypes(id);
+  const lotsReal = useMemo(() => (ticketTypesReal ?? []).flatMap((t) => t.lots ?? []), [ticketTypesReal]);
+  const soldCount = useMemo(() => lotsReal.reduce((s, l) => s + (l.sold_count ?? 0), 0), [lotsReal]);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const { data: rescheduleSummaryRaw } = useQuery({
+    queryKey: ["reschedule-summary", id],
+    queryFn: async () => {
+      const { data, error } = await db.rpc("get_reschedule_summary", { p_event_id: id as string });
+      if (error) throw error;
+      return data as unknown as { keep_count: number; refund_count: number; pending_count: number };
+    },
+    enabled: !!id && (realEvent?.reschedule_count ?? 0) >= 1,
+  });
 
   if (!event) {
     return (
@@ -84,6 +99,10 @@ function ManageEvent() {
   const capacity = eventCapacity(event.id) || 1;
   const types = initialTicketTypes[event.id] ?? [];
   const advanced = store.advancedEvents[event.id] ?? null;
+
+  const canReschedule = !!realEvent && !["ended", "canceled", "suspended"].includes(realEvent.status);
+  const alreadyRescheduled = (realEvent?.reschedule_count ?? 0) >= 1;
+  const deadline = realEvent ? rescheduleDeadline(realEvent) : null;
 
   return (
     <ProducerLayout
