@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const RESCHEDULE_ERROR_MESSAGES: Record<string, string> = {
-  reschedule_not_allowed_status: "Não é possível alterar a data de um evento encerrado, cancelado ou suspenso",
+  reschedule_not_allowed_status:
+    "Não é possível alterar a data de um evento encerrado, cancelado ou suspenso",
   event_already_started: "O evento já começou",
   reschedule_limit_reached: "A data deste evento já foi alterada uma vez",
   reschedule_date_in_past: "Escolha uma data futura",
@@ -138,7 +139,9 @@ function TicketDetail() {
 
   const eventForHooks = ticket?.events ?? null;
   const isRescheduled = (eventForHooks?.reschedule_count ?? 0) >= 1;
-  const hasNotStarted = eventForHooks?.starts_at ? new Date(eventForHooks.starts_at).getTime() >= Date.now() : false;
+  const hasNotStarted = eventForHooks?.starts_at
+    ? new Date(eventForHooks.starts_at).getTime() >= Date.now()
+    : false;
   const showRescheduleBlock = ticket?.status === "valid" && isRescheduled && hasNotStarted;
 
   const { data: lastReschedule } = useLastReschedule(eventForHooks?.id, showRescheduleBlock);
@@ -195,8 +198,12 @@ function TicketDetail() {
   if (!ticket || !ticket.events) {
     return (
       <PageShell className="max-w-2xl">
-        <p className="rounded-xl bg-secondary p-5 text-sm font-semibold">Ingresso não encontrado.</p>
-        <Link to="/meus-ingressos" className="mt-4 inline-block text-sm font-bold text-primary">← Meus ingressos</Link>
+        <p className="rounded-xl bg-secondary p-5 text-sm font-semibold">
+          Ingresso não encontrado.
+        </p>
+        <Link to="/meus-ingressos" className="mt-4 inline-block text-sm font-bold text-primary">
+          ← Meus ingressos
+        </Link>
       </PageShell>
     );
   }
@@ -217,68 +224,135 @@ function TicketDetail() {
 
   return (
     <PageShell className="max-w-2xl">
-      <Link to="/meus-ingressos" className="text-sm font-bold text-primary">← Meus ingressos</Link>
+      <Link to="/meus-ingressos" className="text-sm font-bold text-primary">
+        ← Meus ingressos
+      </Link>
       <h1 className="mt-3 text-4xl font-bold">{event.title}</h1>
 
       <div className="mt-6 rounded-2xl border-2 border-ink bg-card p-6 text-center shadow-pop">
-        <div className={`mx-auto w-fit rounded-xl border-2 border-ink bg-background p-4 ${active ? "" : "opacity-40"}`}>
+        <div
+          className={`mx-auto w-fit rounded-xl border-2 border-ink bg-background p-4 ${active ? "" : "opacity-40"}`}
+        >
           <QRCodeSVG value={ticket.qr_token} size={200} />
         </div>
         <p className="mt-4 font-display text-lg font-extrabold tracking-wide">{ticket.qr_token}</p>
         <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-extrabold">
           <WifiOff className="size-3.5" /> Disponível offline
         </span>
-        {!active && <p className="mt-3 text-sm font-bold text-cta">Ingresso {(statusLabel[ticket.status] ?? ticket.status).toLowerCase()}</p>}
+        {!active && (
+          <p className="mt-3 text-sm font-bold text-cta">
+            Ingresso {(statusLabel[ticket.status] ?? ticket.status).toLowerCase()}
+          </p>
+        )}
       </div>
 
       <dl className="mt-8 grid gap-3 rounded-xl border border-border p-5 text-sm">
         <Row label="Evento" value={event.title} />
-        <Row label="Data e horário" value={startsAt ? startsAt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "A confirmar"} />
-        <Row label="Local" value={<span className="flex flex-wrap items-center gap-2">{event.venue_name}, {event.city} <a href={mapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-primary"><MapPin className="size-3.5" /> Ver no mapa</a></span>} />
-        <Row label="Titular" value={`${ticket.holder_name}${ticket.holder_cpf ? ` · ${ticket.holder_cpf}` : ""}`} />
-        <Row label="Tipo e lote" value={`${ticket.ticket_types?.name ?? "Ingresso"} · ${ticket.lots?.name ?? ""}`} />
+        <Row
+          label="Data e horário"
+          value={
+            startsAt
+              ? startsAt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
+              : "A confirmar"
+          }
+        />
+        <Row
+          label="Local"
+          value={
+            <span className="flex flex-wrap items-center gap-2">
+              {event.venue_name}, {event.city}{" "}
+              <a
+                href={mapUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-bold text-primary"
+              >
+                <MapPin className="size-3.5" /> Ver no mapa
+              </a>
+            </span>
+          }
+        />
+        <Row
+          label="Titular"
+          value={`${ticket.holder_name}${ticket.holder_cpf ? ` · ${ticket.holder_cpf}` : ""}`}
+        />
+        <Row
+          label="Tipo e lote"
+          value={`${ticket.ticket_types?.name ?? "Ingresso"} · ${ticket.lots?.name ?? ""}`}
+        />
         <Row label="Valor pago" value={brl(Number(ticket.price))} />
       </dl>
 
       {ticket.is_half_price && (
         <p className="mt-4 rounded-xl bg-sun/30 p-4 text-sm font-semibold">
-          Meia-entrada: leve o documento que comprova o benefício. Sem ele, a entrada pode ser recusada na portaria.
+          Meia-entrada: leve o documento que comprova o benefício. Sem ele, a entrada pode ser
+          recusada na portaria.
         </p>
       )}
 
       <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Button className="gap-2" disabled title={transferDisabledReason}><Send className="size-4" /> Transferir ingresso</Button>
-        <Button className="gap-2" disabled={!active} onClick={() => void downloadTicketPdf(ticket, event)}><Download className="size-4" /> Baixar PDF</Button>
-        <Button variant="outline" className="gap-2" disabled title={refundDisabledReason}><RotateCcw className="size-4" /> Solicitar reembolso</Button>
-        <Button variant="outline" asChild className="gap-2"><a href={calendarUrl} target="_blank" rel="noreferrer"><CalendarPlus className="size-4" /> Adicionar à agenda</a></Button>
+        <Button className="gap-2" disabled title={transferDisabledReason}>
+          <Send className="size-4" /> Transferir ingresso
+        </Button>
+        <Button
+          className="gap-2"
+          disabled={!active}
+          onClick={() => void downloadTicketPdf(ticket, event)}
+        >
+          <Download className="size-4" /> Baixar PDF
+        </Button>
+        <Button variant="outline" className="gap-2" disabled title={refundDisabledReason}>
+          <RotateCcw className="size-4" /> Solicitar reembolso
+        </Button>
+        <Button variant="outline" asChild className="gap-2">
+          <a href={calendarUrl} target="_blank" rel="noreferrer">
+            <CalendarPlus className="size-4" /> Adicionar à agenda
+          </a>
+        </Button>
       </div>
 
       {showRescheduleBlock && (
         <div className="mt-6 rounded-xl border border-sun bg-sun/30 p-5 text-sm">
           <p className="font-bold">Data alterada</p>
           <p className="mt-2">
-            De <strong>{event.previous_starts_at ? shortDateTime(event.previous_starts_at) : "—"}</strong> para{" "}
-            <strong>{event.starts_at ? shortDateTime(event.starts_at) : "—"}</strong>
+            De{" "}
+            <strong>
+              {event.previous_starts_at ? shortDateTime(event.previous_starts_at) : "—"}
+            </strong>{" "}
+            para <strong>{event.starts_at ? shortDateTime(event.starts_at) : "—"}</strong>
           </p>
-          {lastReschedule?.reason && <p className="mt-1 text-muted-foreground">Motivo: {lastReschedule.reason}</p>}
+          {lastReschedule?.reason && (
+            <p className="mt-1 text-muted-foreground">Motivo: {lastReschedule.reason}</p>
+          )}
           <p className="mt-2 text-muted-foreground">Você pode escolher até o início do evento.</p>
 
           {choice ? (
             <p className="mt-3 font-semibold">
-              {choice.choice === "keep" ? "Você manteve seu ingresso" : "Você solicitou reembolso para este ingresso"}
+              {choice.choice === "keep"
+                ? "Você manteve seu ingresso"
+                : "Você solicitou reembolso para este ingresso"}
             </p>
           ) : (
-            <p className="mt-3 text-muted-foreground">Se você não escolher, seu ingresso continua válido para a nova data.</p>
+            <p className="mt-3 text-muted-foreground">
+              Se você não escolher, seu ingresso continua válido para a nova data.
+            </p>
           )}
 
           {(!choice || choice.choice === "keep") && (
             <div className="mt-4 flex flex-wrap gap-3">
               {!choice && (
-                <Button onClick={() => chooseMutation.mutate("keep")} disabled={chooseMutation.isPending}>
+                <Button
+                  onClick={() => chooseMutation.mutate("keep")}
+                  disabled={chooseMutation.isPending}
+                >
                   Manter meu ingresso
                 </Button>
               )}
-              <Button variant="outline" onClick={() => setConfirmRefundOpen(true)} disabled={chooseMutation.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmRefundOpen(true)}
+                disabled={chooseMutation.isPending}
+              >
                 Quero reembolso
               </Button>
             </div>

@@ -10,14 +10,28 @@ const corsHeaders = {
 };
 
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
 function fmt(value: string | null): string {
   if (!value) return "a definir";
-  return new Date(value).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
+  return new Date(value).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "short",
+  });
 }
 
-function template(opts: { title: string; oldAt: string | null; newAt: string | null; venue: string; reason: string; link: string }) {
+function template(opts: {
+  title: string;
+  oldAt: string | null;
+  newAt: string | null;
+  venue: string;
+  reason: string;
+  link: string;
+}) {
   return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#faf7f2;font-family:Arial,Helvetica,sans-serif;color:#1b1b1b">
   <div style="max-width:560px;margin:0 auto;padding:24px">
     <div style="background:#ffffff;border:2px solid #1b1b1b;border-radius:16px;padding:24px">
@@ -41,9 +55,13 @@ Deno.serve(async (req) => {
     if (!resendKey) return json({ error: "RESEND_API_KEY não configurado" }, 500);
     const siteUrl = Deno.env.get("SITE_URL") ?? "https://jaentro.com.br";
 
-    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-    });
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      },
+    );
     const { data: userData } = await userClient.auth.getUser();
     const user = userData?.user;
     if (!user) return json({ error: "Não autenticado" }, 401);
@@ -51,7 +69,10 @@ Deno.serve(async (req) => {
     const { event_id } = await req.json();
     if (!event_id) return json({ error: "event_id obrigatório" }, 400);
 
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
     const { data: event, error: eventError } = await admin
       .from("events")
@@ -61,7 +82,8 @@ Deno.serve(async (req) => {
     if (eventError) return json({ error: eventError.message }, 500);
     if (!event) return json({ error: "Evento não encontrado" }, 404);
 
-    const ownerId = (event as { producers?: { owner_user_id?: string } | null }).producers?.owner_user_id;
+    const ownerId = (event as { producers?: { owner_user_id?: string } | null }).producers
+      ?.owner_user_id;
     const { data: isAdmin } = await admin.rpc("is_admin", { _user_id: user.id });
     if (ownerId !== user.id && !isAdmin) return json({ error: "Sem permissão" }, 403);
 
@@ -116,7 +138,10 @@ Deno.serve(async (req) => {
       sent += batch.length;
     }
 
-    await admin.from("event_reschedules").update({ notified_at: new Date().toISOString() }).eq("id", reschedule.id);
+    await admin
+      .from("event_reschedules")
+      .update({ notified_at: new Date().toISOString() })
+      .eq("id", reschedule.id);
     return json({ sent });
   } catch (error) {
     console.error("[notify-event-reschedule]", error);

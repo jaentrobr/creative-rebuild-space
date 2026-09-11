@@ -2,9 +2,16 @@ import { useEffect } from "react";
 import type { ScanResult } from "@/lib/gate-store";
 import { playBeep } from "@/components/portaria/beep";
 
-const styles: Record<ScanResult["kind"], { bg: string; title: string; sound: "granted" | "warning" | "denied" }> = {
+const styles: Record<
+  ScanResult["kind"],
+  { bg: string; title: string; sound: "granted" | "warning" | "denied" }
+> = {
   granted: { bg: "bg-emerald-500", title: "LIBERADO", sound: "granted" },
-  granted_check_doc: { bg: "bg-amber-400", title: "LIBERADO: CONFIRA O DOCUMENTO", sound: "warning" },
+  granted_check_doc: {
+    bg: "bg-amber-400",
+    title: "LIBERADO: CONFIRA O DOCUMENTO",
+    sound: "warning",
+  },
   already_used: { bg: "bg-rose-600", title: "JÁ UTILIZADO", sound: "denied" },
   canceled: { bg: "bg-rose-600", title: "INGRESSO CANCELADO", sound: "denied" },
   not_found: { bg: "bg-rose-600", title: "INGRESSO NÃO ENCONTRADO", sound: "denied" },
@@ -34,7 +41,9 @@ export function ResultOverlay({
   const ticket = "ticket" in result ? result.ticket : undefined;
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 p-6 text-center text-white ${style.bg}`}>
+    <div
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 p-6 text-center text-white ${style.bg}`}
+    >
       <p className="text-4xl font-black leading-tight">{style.title}</p>
       {ticket && (
         <div className="mt-2 space-y-1 text-lg font-semibold">
@@ -51,13 +60,19 @@ export function ResultOverlay({
       )}
       {result.kind === "already_used" && result.usedAt && (
         <p className="text-lg font-semibold">
-          Entrou às {new Date(result.usedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+          Entrou às{" "}
+          {new Date(result.usedAt).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </p>
       )}
       {result.kind === "other_event" && result.eventName && (
         <p className="text-lg font-semibold">Evento correto: {result.eventName}</p>
       )}
-      {result.kind === "not_found" && <p className="text-lg font-semibold">Código: {result.code}</p>}
+      {result.kind === "not_found" && (
+        <p className="text-lg font-semibold">Código: {result.code}</p>
+      )}
 
       {result.kind === "granted_check_doc" && (
         <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
@@ -79,7 +94,11 @@ export function ResultOverlay({
       )}
 
       {result.kind !== "granted_check_doc" && (
-        <button type="button" onClick={onClose} className="mt-6 text-sm font-semibold underline underline-offset-4">
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-6 text-sm font-semibold underline underline-offset-4"
+        >
           Fechar
         </button>
       )}

@@ -1,12 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ProducerCta } from "@/components/producer-cta";
-import { Disc3, Guitar, Music2, Mic2, PartyPopper, Radio, Sparkles, GraduationCap, QrCode, WifiOff, Send, RotateCcw } from "lucide-react";
+import {
+  Disc3,
+  Guitar,
+  Music2,
+  Mic2,
+  PartyPopper,
+  Radio,
+  Sparkles,
+  GraduationCap,
+  QrCode,
+  WifiOff,
+  Send,
+  RotateCcw,
+} from "lucide-react";
 import { filterEvents, isWeekend, eventImage, type EventFilterState } from "@/data/events";
 import { buyerFaqs } from "@/data/faqs";
 import { SearchBar } from "@/components/search-bar";
 import { EventCarousel } from "@/components/event-carousel";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useSession } from "@/lib/session";
 import { eventsSearch } from "@/lib/events-search";
 import { fetchPublishedEvents, fetchPlatformSettings, type PublicEvent } from "@/lib/queries";
@@ -18,7 +36,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Entrô — Ingressos para festas e shows no Brasil" },
-      { name: "description", content: "Encontre e compre ingressos para festas, shows e rolês em todo o Brasil." },
+      {
+        name: "description",
+        content: "Encontre e compre ingressos para festas, shows e rolês em todo o Brasil.",
+      },
       { property: "og:title", content: "Entrô — Seu próximo rolê começa aqui" },
       { property: "og:description", content: "Festas, shows e experiências em todo o Brasil." },
       { property: "og:type", content: "website" },
@@ -38,33 +59,57 @@ const styleIcons: Record<string, { icon: typeof Radio; tone: string }> = {
   Rock: { icon: Guitar, tone: "bg-sun text-ink" },
   Universitária: { icon: GraduationCap, tone: "bg-primary text-primary-foreground" },
 };
-const fallbackTones = ["bg-primary text-primary-foreground", "bg-cta text-cta-foreground", "bg-sun text-ink"];
+const fallbackTones = [
+  "bg-primary text-primary-foreground",
+  "bg-cta text-cta-foreground",
+  "bg-sun text-ink",
+];
 
 const emptyFilters: EventFilterState = { q: "", city: "", genres: [], prices: [], when: "" };
 
 function Index() {
   const { city } = useSession();
-  const { data: events = [] } = useQuery({ queryKey: ["public-events"], queryFn: fetchPublishedEvents, staleTime: 60 * 1000 });
-  const { data: settings } = useQuery({ queryKey: ["platform-settings"], queryFn: fetchPlatformSettings, staleTime: 5 * 60 * 1000 });
+  const { data: events = [] } = useQuery({
+    queryKey: ["public-events"],
+    queryFn: fetchPublishedEvents,
+    staleTime: 60 * 1000,
+  });
+  const { data: settings } = useQuery({
+    queryKey: ["platform-settings"],
+    queryFn: fetchPlatformSettings,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const inCity = (list: PublicEvent[]) => (city ? list.filter((event) => event.city === city) : list);
+  const inCity = (list: PublicEvent[]) =>
+    city ? list.filter((event) => event.city === city) : list;
   const trending = inCity(events.filter((event) => event.is_featured));
   const weekend = inCity(events.filter((event) => isWeekend(event.starts_at)));
 
-  const genres = Array.from(new Set(events.map((event) => event.genre).filter((g): g is string => Boolean(g))));
-  const byGenre = (genre: string) => inCity(filterEvents(events, { ...emptyFilters, genres: [genre] }));
+  const genres = Array.from(
+    new Set(events.map((event) => event.genre).filter((g): g is string => Boolean(g))),
+  );
+  const byGenre = (genre: string) =>
+    inCity(filterEvents(events, { ...emptyFilters, genres: [genre] }));
 
-  const cities = settings?.cities ?? Array.from(new Set(events.map((event) => event.city).filter((c): c is string => Boolean(c))));
+  const cities =
+    settings?.cities ??
+    Array.from(new Set(events.map((event) => event.city).filter((c): c is string => Boolean(c))));
 
   return (
     <>
       <section className="relative overflow-hidden bg-background">
-        <h1 className="sr-only">Bora pro rolê? Festas, shows e experiências para sair do grupo e entrar na pista.</h1>
+        <h1 className="sr-only">
+          Bora pro rolê? Festas, shows e experiências para sair do grupo e entrar na pista.
+        </h1>
 
         <div className="hidden lg:block">
           <div
             className="absolute inset-y-0 right-0 w-full bg-no-repeat"
-            style={{ backgroundImage: `url(${heroDesktop.url})`, backgroundSize: "contain", backgroundPosition: "right center" }}
+            style={{
+              backgroundImage: `url(${heroDesktop.url})`,
+              backgroundSize: "contain",
+              backgroundPosition: "right center",
+            }}
             aria-hidden
           />
           <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-24">
@@ -72,8 +117,12 @@ function Index() {
               <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-primary">
                 <Sparkles className="size-4" /> O Brasil tá cheio de coisa boa
               </p>
-              <p className="font-display text-5xl font-extrabold leading-none text-ink sm:text-7xl">Bora pro rolê?</p>
-              <p className="mb-8 mt-4 max-w-md text-lg text-muted-foreground">Festas, shows e experiências para sair do grupo e entrar na pista.</p>
+              <p className="font-display text-5xl font-extrabold leading-none text-ink sm:text-7xl">
+                Bora pro rolê?
+              </p>
+              <p className="mb-8 mt-4 max-w-md text-lg text-muted-foreground">
+                Festas, shows e experiências para sair do grupo e entrar na pista.
+              </p>
               <SearchBar />
             </div>
           </div>
@@ -105,10 +154,23 @@ function Index() {
       </section>
 
       <div className="mt-2">
-        <EventCarousel title={city ? `Em alta em ${cityShort(city)}` : "Em alta"} events={trending} viewAll={{ cidade: city }} />
-        <EventCarousel title="Este fim de semana" events={weekend} viewAll={{ cidade: city, quando: "fds" }} />
+        <EventCarousel
+          title={city ? `Em alta em ${cityShort(city)}` : "Em alta"}
+          events={trending}
+          viewAll={{ cidade: city }}
+        />
+        <EventCarousel
+          title="Este fim de semana"
+          events={weekend}
+          viewAll={{ cidade: city, quando: "fds" }}
+        />
         {genres.slice(0, 3).map((genre) => (
-          <EventCarousel key={genre} title={genre} events={byGenre(genre)} viewAll={{ cidade: city, genero: genre }} />
+          <EventCarousel
+            key={genre}
+            title={genre}
+            events={byGenre(genre)}
+            viewAll={{ cidade: city, genero: genre }}
+          />
         ))}
       </div>
 
@@ -124,7 +186,12 @@ function Index() {
               const Icon = style?.icon ?? Sparkles;
               const tone = style?.tone ?? fallbackTones[index % fallbackTones.length]!;
               return (
-                <Link key={genre} to="/eventos" search={eventsSearch({ genero: genre, cidade: city })} className={`flex items-center gap-3 rounded-2xl border-2 border-ink p-4 font-display text-lg font-extrabold shadow-pop transition-transform hover:-translate-y-1 ${tone}`}>
+                <Link
+                  key={genre}
+                  to="/eventos"
+                  search={eventsSearch({ genero: genre, cidade: city })}
+                  className={`flex items-center gap-3 rounded-2xl border-2 border-ink p-4 font-display text-lg font-extrabold shadow-pop transition-transform hover:-translate-y-1 ${tone}`}
+                >
                   <Icon className="size-6 shrink-0" />
                   <span className="min-w-0 truncate">{genre}</span>
                 </Link>
@@ -143,16 +210,30 @@ function Index() {
                 const cityEvents = events.filter((event) => event.city === item);
                 const image = cityEvents[0] ? eventImage(cityEvents[0]) : undefined;
                 return (
-                  <Link key={item} to="/eventos" search={eventsSearch({ cidade: item })} className="group relative overflow-hidden rounded-2xl border border-border">
+                  <Link
+                    key={item}
+                    to="/eventos"
+                    search={eventsSearch({ cidade: item })}
+                    className="group relative overflow-hidden rounded-2xl border border-border"
+                  >
                     {image ? (
-                      <img src={image} alt={`Rolês em ${item}`} loading="lazy" width={800} height={500} className="h-36 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-44" />
+                      <img
+                        src={image}
+                        alt={`Rolês em ${item}`}
+                        loading="lazy"
+                        width={800}
+                        height={500}
+                        className="h-36 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-44"
+                      />
                     ) : (
                       <div className="h-36 w-full bg-gradient-to-br from-primary to-cta sm:h-44" />
                     )}
                     <div className="absolute inset-0 bg-linear-to-t from-ink/85 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-4 text-primary-foreground">
                       <p className="font-display text-xl font-extrabold">{item}</p>
-                      <p className="text-sm text-primary-foreground/80">{cityEvents.length} eventos</p>
+                      <p className="text-sm text-primary-foreground/80">
+                        {cityEvents.length} eventos
+                      </p>
                     </div>
                   </Link>
                 );
@@ -181,12 +262,26 @@ function Index() {
           <p className="mt-2 text-muted-foreground">Sem papel, sem fila e sem susto na porta.</p>
           <ul className="mt-6 grid gap-4">
             {[
-              { icon: WifiOff, title: "Funciona offline", text: "O QR code abre mesmo sem internet na pista." },
-              { icon: Send, title: "Transfira pra um amigo", text: "Passe o ingresso em segundos, com novo QR code." },
-              { icon: RotateCcw, title: "Reembolso em até 7 dias", text: "Comprou e mudou de ideia? A gente resolve." },
+              {
+                icon: WifiOff,
+                title: "Funciona offline",
+                text: "O QR code abre mesmo sem internet na pista.",
+              },
+              {
+                icon: Send,
+                title: "Transfira pra um amigo",
+                text: "Passe o ingresso em segundos, com novo QR code.",
+              },
+              {
+                icon: RotateCcw,
+                title: "Reembolso em até 7 dias",
+                text: "Comprou e mudou de ideia? A gente resolve.",
+              },
             ].map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-secondary text-primary"><Icon className="size-5" /></span>
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                  <Icon className="size-5" />
+                </span>
                 <div>
                   <p className="font-bold">{title}</p>
                   <p className="text-sm text-muted-foreground">{text}</p>

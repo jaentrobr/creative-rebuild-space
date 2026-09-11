@@ -18,7 +18,12 @@ import { db } from "@/integrations/meu-supabase/client";
 import type { Tables } from "@/integrations/meu-supabase/types";
 import { shortDateTime } from "@/lib/format";
 import { useUpdateEvent } from "@/lib/producer-queries";
-import { fromDatetimeLocal, rescheduleDeadline, toDatetimeLocal, translateRescheduleError } from "@/lib/reschedule";
+import {
+  fromDatetimeLocal,
+  rescheduleDeadline,
+  toDatetimeLocal,
+  translateRescheduleError,
+} from "@/lib/reschedule";
 
 type EventRow = Tables<"events">;
 type LotRow = Tables<"lots">;
@@ -51,7 +56,11 @@ export function RescheduleDialog({
 
   const reasonValid = reason.trim().length >= 10;
   const lotsAfterNewDate = startsAt
-    ? lots.filter((lot) => lot.sales_end_at && new Date(lot.sales_end_at) > new Date(fromDatetimeLocal(startsAt) ?? ""))
+    ? lots.filter(
+        (lot) =>
+          lot.sales_end_at &&
+          new Date(lot.sales_end_at) > new Date(fromDatetimeLocal(startsAt) ?? ""),
+      )
     : [];
 
   const canSubmit = reasonValid && confirmed && !!startsAt && !updateEvent.isPending;
@@ -78,11 +87,15 @@ export function RescheduleDialog({
           reset();
           onOpenChange(false);
           try {
-            const { error } = await db.functions.invoke("notify-event-reschedule", { body: { event_id: event.id } });
+            const { error } = await db.functions.invoke("notify-event-reschedule", {
+              body: { event_id: event.id },
+            });
             if (error) throw error;
             toast.success("Data alterada e compradores avisados");
           } catch {
-            toast.warning("Data alterada, mas não conseguimos avisar os compradores por e-mail agora.");
+            toast.warning(
+              "Data alterada, mas não conseguimos avisar os compradores por e-mail agora.",
+            );
           }
         },
         onError: (error) => toast.error(translateRescheduleError(error)),
@@ -91,11 +104,19 @@ export function RescheduleDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) reset(); onOpenChange(next); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) reset();
+        onOpenChange(next);
+      }}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Alterar data do evento</DialogTitle>
-          <DialogDescription>Esta é a única alteração de data permitida depois da primeira venda.</DialogDescription>
+          <DialogDescription>
+            Esta é a única alteração de data permitida depois da primeira venda.
+          </DialogDescription>
         </DialogHeader>
 
         <Alert className="border-amber-500 bg-amber-500/10 text-ink">
@@ -104,8 +125,13 @@ export function RescheduleDialog({
           <AlertDescription>
             <ul className="mt-1 list-disc space-y-1 pl-4 text-sm">
               <li>Depois da primeira venda, a data só pode ser alterada 1 vez.</li>
-              <li>A nova data deve ser até {deadline ? shortDateTime(deadline.toISOString()) : "—"}.</li>
-              <li>Os compradores serão avisados por e-mail e poderão pedir reembolso integral até o início do evento. O reembolso sai do seu saldo.</li>
+              <li>
+                A nova data deve ser até {deadline ? shortDateTime(deadline.toISOString()) : "—"}.
+              </li>
+              <li>
+                Os compradores serão avisados por e-mail e poderão pedir reembolso integral até o
+                início do evento. O reembolso sai do seu saldo.
+              </li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -166,7 +192,8 @@ export function RescheduleDialog({
               <AlertTriangle className="size-4" />
               <AlertTitle>Ajuste os lotes</AlertTitle>
               <AlertDescription>
-                {lotsAfterNewDate.length} lote(s) têm o fim das vendas depois da nova data de início. Considere ajustar o fim das vendas desses lotes.
+                {lotsAfterNewDate.length} lote(s) têm o fim das vendas depois da nova data de
+                início. Considere ajustar o fim das vendas desses lotes.
               </AlertDescription>
             </Alert>
           ) : null}
@@ -178,7 +205,15 @@ export function RescheduleDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => { reset(); onOpenChange(false); }}>Cancelar</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              reset();
+              onOpenChange(false);
+            }}
+          >
+            Cancelar
+          </Button>
           <Button disabled={!canSubmit} onClick={submit}>
             {updateEvent.isPending ? "Salvando..." : "Confirmar nova data"}
           </Button>

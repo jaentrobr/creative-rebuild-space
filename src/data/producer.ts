@@ -62,7 +62,17 @@ export type ProducerEvent = {
   };
 };
 
-export const genres = ["Funk", "Sertanejo", "Eletrônica", "Pagode", "Rap/Trap", "Rock", "Open bar", "Universitária", "Outro"];
+export const genres = [
+  "Funk",
+  "Sertanejo",
+  "Eletrônica",
+  "Pagode",
+  "Rap/Trap",
+  "Rock",
+  "Open bar",
+  "Universitária",
+  "Outro",
+];
 export const ageRatings = ["Livre", "14", "16", "18"];
 export const lotTurnLabels: Record<LotTurn, string> = {
   esgotar: "Quando esgotar",
@@ -303,8 +313,38 @@ export const initialTicketTypes: Record<string, ProducerTicketType[]> = {
 
 /* ---------- gerador determinístico de participantes e vendas ---------- */
 
-const firstNames = ["Marina", "Lucas", "Bia", "Rafael", "Camila", "Diego", "Juliana", "Pedro", "Aline", "Thiago", "Larissa", "Gustavo", "Renata", "Vitor", "Sabrina", "Caio"];
-const lastNames = ["Rocha", "Duarte", "Almeida", "Santos", "Ferreira", "Lima", "Costa", "Barbosa", "Nunes", "Teixeira", "Moura", "Prado"];
+const firstNames = [
+  "Marina",
+  "Lucas",
+  "Bia",
+  "Rafael",
+  "Camila",
+  "Diego",
+  "Juliana",
+  "Pedro",
+  "Aline",
+  "Thiago",
+  "Larissa",
+  "Gustavo",
+  "Renata",
+  "Vitor",
+  "Sabrina",
+  "Caio",
+];
+const lastNames = [
+  "Rocha",
+  "Duarte",
+  "Almeida",
+  "Santos",
+  "Ferreira",
+  "Lima",
+  "Costa",
+  "Barbosa",
+  "Nunes",
+  "Teixeira",
+  "Moura",
+  "Prado",
+];
 
 let seed = 42;
 const rnd = () => {
@@ -383,20 +423,36 @@ export const participants: Participant[] = buildParticipants();
 
 export const maskCpfPartial = (cpf: string) => `***.${cpf.slice(4, 7)}.${cpf.slice(8, 11)}-**`;
 
-export const eventParticipants = (eventId: string) => participants.filter((p) => p.eventId === eventId);
+export const eventParticipants = (eventId: string) =>
+  participants.filter((p) => p.eventId === eventId);
 
 export const eventSold = (eventId: string) =>
-  (initialTicketTypes[eventId] ?? []).reduce((sum, t) => sum + t.lots.reduce((s, l) => s + l.sold, 0), 0);
+  (initialTicketTypes[eventId] ?? []).reduce(
+    (sum, t) => sum + t.lots.reduce((s, l) => s + l.sold, 0),
+    0,
+  );
 
 export const eventCapacity = (eventId: string) =>
-  (initialTicketTypes[eventId] ?? []).reduce((sum, t) => sum + t.lots.reduce((s, l) => s + l.quantity, 0), 0);
+  (initialTicketTypes[eventId] ?? []).reduce(
+    (sum, t) => sum + t.lots.reduce((s, l) => s + l.quantity, 0),
+    0,
+  );
 
 export const eventRevenue = (eventId: string) =>
-  (initialTicketTypes[eventId] ?? []).reduce((sum, t) => sum + t.lots.reduce((s, l) => s + l.sold * l.price, 0), 0);
+  (initialTicketTypes[eventId] ?? []).reduce(
+    (sum, t) => sum + t.lots.reduce((s, l) => s + l.sold * l.price, 0),
+    0,
+  );
 
 /* ---------- vendas por dia ---------- */
 
-export type SalesPoint = { date: string; label: string; eventId: string; value: number; tickets: number };
+export type SalesPoint = {
+  date: string;
+  label: string;
+  eventId: string;
+  value: number;
+  tickets: number;
+};
 
 export const salesByDay: SalesPoint[] = (() => {
   seed = 7;
@@ -438,21 +494,94 @@ export const statement: StatementEntry[] = (() => {
     const event = initialEvents[Math.floor(rnd() * 3)]!;
     const gross = Math.round(400 + rnd() * 2600);
     const d = new Date(Date.now() - Math.round(rnd() * 40) * day).toISOString();
-    rows.push({ id: `st-v${i}`, date: d, kind: "Venda", eventId: event.id, description: `Vendas do dia — ${event.name}`, amount: gross });
-    rows.push({ id: `st-t${i}`, date: d, kind: "Taxa", eventId: event.id, description: "Taxa Entrô", amount: -Number(pixFee(gross).toFixed(2)) });
+    rows.push({
+      id: `st-v${i}`,
+      date: d,
+      kind: "Venda",
+      eventId: event.id,
+      description: `Vendas do dia — ${event.name}`,
+      amount: gross,
+    });
+    rows.push({
+      id: `st-t${i}`,
+      date: d,
+      kind: "Taxa",
+      eventId: event.id,
+      description: "Taxa Entrô",
+      amount: -Number(pixFee(gross).toFixed(2)),
+    });
   }
-  rows.push({ id: "st-e1", date: new Date(Date.now() - 6 * day).toISOString(), kind: "Estorno", eventId: "ev-baile", description: "Reembolso — arrependimento em 7 dias", amount: -74.9 });
-  rows.push({ id: "st-e2", date: new Date(Date.now() - 12 * day).toISOString(), kind: "Estorno", eventId: "ev-fabrica", description: "Reembolso — cancelamento com taxa", amount: -72 });
-  rows.push({ id: "st-a1", date: new Date(Date.now() - 9 * day).toISOString(), kind: "Adiantamento", eventId: "ev-baile", description: "Adiantamento do Pix (taxa 2,99%)", amount: 4850.5 });
-  rows.push({ id: "st-a2", date: new Date(Date.now() - 3 * day).toISOString(), kind: "Adiantamento", eventId: "ev-fabrica", description: "Adiantamento do Pix (taxa 2,99%)", amount: 2910.2 });
-  rows.push({ id: "st-s1", date: new Date(Date.now() - 20 * day).toISOString(), kind: "Saque", description: "Saque via Pix", amount: -3000 });
-  rows.push({ id: "st-s2", date: new Date(Date.now() - 11 * day).toISOString(), kind: "Saque", description: "Saque via Pix", amount: -1500 });
-  rows.push({ id: "st-s3", date: new Date(Date.now() - 2 * day).toISOString(), kind: "Saque", description: "Saque via TED (R$ 5,00 de tarifa)", amount: -2005 });
-  rows.push({ id: "st-c1", date: new Date(Date.now() - 5 * day).toISOString(), kind: "Comissão", eventId: "ev-baile", description: "Comissão de divulgador — LEO10", amount: -420 });
+  rows.push({
+    id: "st-e1",
+    date: new Date(Date.now() - 6 * day).toISOString(),
+    kind: "Estorno",
+    eventId: "ev-baile",
+    description: "Reembolso — arrependimento em 7 dias",
+    amount: -74.9,
+  });
+  rows.push({
+    id: "st-e2",
+    date: new Date(Date.now() - 12 * day).toISOString(),
+    kind: "Estorno",
+    eventId: "ev-fabrica",
+    description: "Reembolso — cancelamento com taxa",
+    amount: -72,
+  });
+  rows.push({
+    id: "st-a1",
+    date: new Date(Date.now() - 9 * day).toISOString(),
+    kind: "Adiantamento",
+    eventId: "ev-baile",
+    description: "Adiantamento do Pix (taxa 2,99%)",
+    amount: 4850.5,
+  });
+  rows.push({
+    id: "st-a2",
+    date: new Date(Date.now() - 3 * day).toISOString(),
+    kind: "Adiantamento",
+    eventId: "ev-fabrica",
+    description: "Adiantamento do Pix (taxa 2,99%)",
+    amount: 2910.2,
+  });
+  rows.push({
+    id: "st-s1",
+    date: new Date(Date.now() - 20 * day).toISOString(),
+    kind: "Saque",
+    description: "Saque via Pix",
+    amount: -3000,
+  });
+  rows.push({
+    id: "st-s2",
+    date: new Date(Date.now() - 11 * day).toISOString(),
+    kind: "Saque",
+    description: "Saque via Pix",
+    amount: -1500,
+  });
+  rows.push({
+    id: "st-s3",
+    date: new Date(Date.now() - 2 * day).toISOString(),
+    kind: "Saque",
+    description: "Saque via TED (R$ 5,00 de tarifa)",
+    amount: -2005,
+  });
+  rows.push({
+    id: "st-c1",
+    date: new Date(Date.now() - 5 * day).toISOString(),
+    kind: "Comissão",
+    eventId: "ev-baile",
+    description: "Comissão de divulgador — LEO10",
+    amount: -420,
+  });
   return rows.sort((a, b) => +new Date(b.date) - +new Date(a.date));
 })();
 
-export type Receivable = { id: string; eventId: string; dueAt: string; amount: number; installment: string };
+export type Receivable = {
+  id: string;
+  eventId: string;
+  dueAt: string;
+  amount: number;
+  installment: string;
+};
 
 export const receivables: Receivable[] = (() => {
   seed = 123;
@@ -478,7 +607,9 @@ export const balances = {
   pixAdvanceAvailable: 7400,
 };
 
-export const totalSales = statement.filter((s) => s.kind === "Venda").reduce((s, r) => s + r.amount, 0);
+export const totalSales = statement
+  .filter((s) => s.kind === "Venda")
+  .reduce((s, r) => s + r.amount, 0);
 export const totalTicketsSold = initialEvents.reduce((s, e) => s + eventSold(e.id), 0);
 
 /* ---------- reembolsos ---------- */
@@ -497,28 +628,148 @@ export type Refund = {
 };
 
 export const refunds: Refund[] = [
-  { id: "rf-1", buyer: "Camila Duarte", eventId: "ev-baile", ticket: "Pista — 2º lote", purchasedAt: iso(-8), requestedAt: iso(-6), reason: "Mudança de planos", rule: "Arrependimento em 7 dias", amount: 74.9, status: "Concluído" },
-  { id: "rf-2", buyer: "Rafael Lima", eventId: "ev-fabrica", ticket: "Pista — 2º lote", purchasedAt: iso(-25), requestedAt: iso(-12), reason: "Não vou conseguir ir", rule: "Cancelamento com taxa", amount: 72, status: "Concluído" },
-  { id: "rf-3", buyer: "Aline Costa", eventId: "ev-baile", ticket: "VIP — 1º lote", purchasedAt: iso(-30), requestedAt: iso(-2), reason: "Viagem de trabalho", rule: "Cancelamento com taxa", amount: 108, status: "Processando" },
-  { id: "rf-4", buyer: "Thiago Moura", eventId: "ev-samba", ticket: "Pista — Único", purchasedAt: iso(-40), requestedAt: iso(-14), reason: "Evento cancelado pelo produtor", rule: "Evento cancelado", amount: 43.5, status: "Concluído" },
+  {
+    id: "rf-1",
+    buyer: "Camila Duarte",
+    eventId: "ev-baile",
+    ticket: "Pista — 2º lote",
+    purchasedAt: iso(-8),
+    requestedAt: iso(-6),
+    reason: "Mudança de planos",
+    rule: "Arrependimento em 7 dias",
+    amount: 74.9,
+    status: "Concluído",
+  },
+  {
+    id: "rf-2",
+    buyer: "Rafael Lima",
+    eventId: "ev-fabrica",
+    ticket: "Pista — 2º lote",
+    purchasedAt: iso(-25),
+    requestedAt: iso(-12),
+    reason: "Não vou conseguir ir",
+    rule: "Cancelamento com taxa",
+    amount: 72,
+    status: "Concluído",
+  },
+  {
+    id: "rf-3",
+    buyer: "Aline Costa",
+    eventId: "ev-baile",
+    ticket: "VIP — 1º lote",
+    purchasedAt: iso(-30),
+    requestedAt: iso(-2),
+    reason: "Viagem de trabalho",
+    rule: "Cancelamento com taxa",
+    amount: 108,
+    status: "Processando",
+  },
+  {
+    id: "rf-4",
+    buyer: "Thiago Moura",
+    eventId: "ev-samba",
+    ticket: "Pista — Único",
+    purchasedAt: iso(-40),
+    requestedAt: iso(-14),
+    reason: "Evento cancelado pelo produtor",
+    rule: "Evento cancelado",
+    amount: 43.5,
+    status: "Concluído",
+  },
 ];
 
 /* ---------- cupons, cortesias, divulgadores, portaria ---------- */
 
-export type Coupon = { id: string; eventId: string; code: string; kind: "percent" | "value"; amount: number; limit: number; used: number; validUntil: string; types: string[]; active: boolean };
+export type Coupon = {
+  id: string;
+  eventId: string;
+  code: string;
+  kind: "percent" | "value";
+  amount: number;
+  limit: number;
+  used: number;
+  validUntil: string;
+  types: string[];
+  active: boolean;
+};
 
 export const initialCoupons: Coupon[] = [
-  { id: "cp-1", eventId: "ev-baile", code: "VIOLETA10", kind: "percent", amount: 10, limit: 200, used: 84, validUntil: iso(18), types: ["Pista"], active: true },
-  { id: "cp-2", eventId: "ev-baile", code: "AMIGOS20", kind: "value", amount: 20, limit: 50, used: 50, validUntil: iso(10), types: ["Pista", "VIP"], active: false },
-  { id: "cp-3", eventId: "ev-fabrica", code: "BASS15", kind: "percent", amount: 15, limit: 100, used: 27, validUntil: iso(2), types: ["Pista"], active: true },
+  {
+    id: "cp-1",
+    eventId: "ev-baile",
+    code: "VIOLETA10",
+    kind: "percent",
+    amount: 10,
+    limit: 200,
+    used: 84,
+    validUntil: iso(18),
+    types: ["Pista"],
+    active: true,
+  },
+  {
+    id: "cp-2",
+    eventId: "ev-baile",
+    code: "AMIGOS20",
+    kind: "value",
+    amount: 20,
+    limit: 50,
+    used: 50,
+    validUntil: iso(10),
+    types: ["Pista", "VIP"],
+    active: false,
+  },
+  {
+    id: "cp-3",
+    eventId: "ev-fabrica",
+    code: "BASS15",
+    kind: "percent",
+    amount: 15,
+    limit: 100,
+    used: 27,
+    validUntil: iso(2),
+    types: ["Pista"],
+    active: true,
+  },
 ];
 
-export type Courtesy = { id: string; eventId: string; name: string; email: string; type: string; quantity: number; status: "Enviada" | "Utilizada" | "Cancelada" };
+export type Courtesy = {
+  id: string;
+  eventId: string;
+  name: string;
+  email: string;
+  type: string;
+  quantity: number;
+  status: "Enviada" | "Utilizada" | "Cancelada";
+};
 
 export const initialCourtesies: Courtesy[] = [
-  { id: "ct-1", eventId: "ev-baile", name: "Imprensa — Jornal da Cidade", email: "pauta@jornal.com", type: "VIP", quantity: 2, status: "Enviada" },
-  { id: "ct-2", eventId: "ev-baile", name: "DJ Convidada", email: "dj@email.com", type: "Camarote", quantity: 4, status: "Utilizada" },
-  { id: "ct-3", eventId: "ev-fabrica", name: "Parceria Rádio Bass", email: "radio@email.com", type: "Pista", quantity: 3, status: "Enviada" },
+  {
+    id: "ct-1",
+    eventId: "ev-baile",
+    name: "Imprensa — Jornal da Cidade",
+    email: "pauta@jornal.com",
+    type: "VIP",
+    quantity: 2,
+    status: "Enviada",
+  },
+  {
+    id: "ct-2",
+    eventId: "ev-baile",
+    name: "DJ Convidada",
+    email: "dj@email.com",
+    type: "Camarote",
+    quantity: 4,
+    status: "Utilizada",
+  },
+  {
+    id: "ct-3",
+    eventId: "ev-fabrica",
+    name: "Parceria Rádio Bass",
+    email: "radio@email.com",
+    type: "Pista",
+    quantity: 3,
+    status: "Enviada",
+  },
 ];
 
 export type Promoter = {
@@ -536,18 +787,102 @@ export type Promoter = {
 };
 
 export const initialPromoters: Promoter[] = [
-  { id: "pm-1", eventId: "ev-baile", name: "Leo Prado", whatsapp: "(31) 98888-1010", code: "LEO10", commissionKind: "percent", commission: 10, clicks: 1240, sold: 86, revenue: 6020, paid: true },
-  { id: "pm-2", eventId: "ev-baile", name: "Duda Nunes", whatsapp: "(31) 98888-2020", code: "DUDA20", commissionKind: "fixed", commission: 5, clicks: 880, sold: 61, revenue: 4270, paid: false },
-  { id: "pm-3", eventId: "ev-baile", name: "Rafa Teixeira", whatsapp: "(31) 98888-3030", code: "RAFA", commissionKind: "none", commission: 0, clicks: 640, sold: 38, revenue: 2660, paid: false },
-  { id: "pm-4", eventId: "ev-baile", name: "Bia Santos", whatsapp: "(31) 98888-4040", code: "BIA15", commissionKind: "percent", commission: 15, clicks: 410, sold: 25, revenue: 1750, paid: false },
-  { id: "pm-5", eventId: "ev-baile", name: "Caio Almeida", whatsapp: "(31) 98888-5050", code: "CAIO", commissionKind: "fixed", commission: 4, clicks: 210, sold: 12, revenue: 840, paid: false },
+  {
+    id: "pm-1",
+    eventId: "ev-baile",
+    name: "Leo Prado",
+    whatsapp: "(31) 98888-1010",
+    code: "LEO10",
+    commissionKind: "percent",
+    commission: 10,
+    clicks: 1240,
+    sold: 86,
+    revenue: 6020,
+    paid: true,
+  },
+  {
+    id: "pm-2",
+    eventId: "ev-baile",
+    name: "Duda Nunes",
+    whatsapp: "(31) 98888-2020",
+    code: "DUDA20",
+    commissionKind: "fixed",
+    commission: 5,
+    clicks: 880,
+    sold: 61,
+    revenue: 4270,
+    paid: false,
+  },
+  {
+    id: "pm-3",
+    eventId: "ev-baile",
+    name: "Rafa Teixeira",
+    whatsapp: "(31) 98888-3030",
+    code: "RAFA",
+    commissionKind: "none",
+    commission: 0,
+    clicks: 640,
+    sold: 38,
+    revenue: 2660,
+    paid: false,
+  },
+  {
+    id: "pm-4",
+    eventId: "ev-baile",
+    name: "Bia Santos",
+    whatsapp: "(31) 98888-4040",
+    code: "BIA15",
+    commissionKind: "percent",
+    commission: 15,
+    clicks: 410,
+    sold: 25,
+    revenue: 1750,
+    paid: false,
+  },
+  {
+    id: "pm-5",
+    eventId: "ev-baile",
+    name: "Caio Almeida",
+    whatsapp: "(31) 98888-5050",
+    code: "CAIO",
+    commissionKind: "fixed",
+    commission: 4,
+    clicks: 210,
+    sold: 12,
+    revenue: 840,
+    paid: false,
+  },
 ];
 
-export type GateUser = { id: string; eventId: string; name: string; username: string; password: string; active: boolean; checkins: number };
+export type GateUser = {
+  id: string;
+  eventId: string;
+  name: string;
+  username: string;
+  password: string;
+  active: boolean;
+  checkins: number;
+};
 
 export const initialGateUsers: GateUser[] = [
-  { id: "gt-1", eventId: "ev-baile", name: "Portaria A", username: "violeta.portaria1", password: "Ent4-9K2M", active: true, checkins: 312 },
-  { id: "gt-2", eventId: "ev-baile", name: "Portaria B", username: "violeta.portaria2", password: "Ent4-7Q5X", active: true, checkins: 188 },
+  {
+    id: "gt-1",
+    eventId: "ev-baile",
+    name: "Portaria A",
+    username: "violeta.portaria1",
+    password: "Ent4-9K2M",
+    active: true,
+    checkins: 312,
+  },
+  {
+    id: "gt-2",
+    eventId: "ev-baile",
+    name: "Portaria B",
+    username: "violeta.portaria2",
+    password: "Ent4-7Q5X",
+    active: true,
+    checkins: 188,
+  },
 ];
 
 export const promoterDailySales = (promoter: Promoter) => {
@@ -562,14 +897,15 @@ export const promoterDailySales = (promoter: Promoter) => {
   });
 };
 
-export const randomPassword = () =>
-  `Ent4-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+export const randomPassword = () => `Ent4-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 export const randomPromoCode = (name: string) =>
   `${name.split(" ")[0]?.toUpperCase().slice(0, 6) ?? "ENTRO"}${Math.floor(10 + Math.random() * 89)}`;
 
 export const csvDownload = (filename: string, rows: (string | number)[][]) => {
-  const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")).join("\n");
+  const csv = rows
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";"))
+    .join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

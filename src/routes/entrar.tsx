@@ -37,8 +37,10 @@ type Mode = "login" | "forgot";
 function mapAuthError(message: string): string {
   const normalized = message.toLowerCase();
   if (normalized.includes("invalid login credentials")) return "E-mail ou senha inválidos.";
-  if (normalized.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.";
-  if (normalized.includes("rate limit")) return "Muitas tentativas. Aguarde um momento e tente de novo.";
+  if (normalized.includes("email not confirmed"))
+    return "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.";
+  if (normalized.includes("rate limit"))
+    return "Muitas tentativas. Aguarde um momento e tente de novo.";
   if (normalized.includes("user not found")) return "Não encontramos uma conta com esse e-mail.";
   return "Não foi possível concluir. Tente novamente em instantes.";
 }
@@ -53,7 +55,7 @@ function LoginPage() {
       half: search.half || false,
       ref: search.ref || "",
     }),
-    [search]
+    [search],
   );
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -111,23 +113,57 @@ function LoginPage() {
             <>
               <h1 className="text-center text-3xl font-bold sm:text-4xl">Seu rolê tá aqui</h1>
               <form onSubmit={handleLogin} className="mt-6 grid gap-3">
-                <Input required type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input
+                  required
+                  type="email"
+                  placeholder="E-mail"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
                 <div className="relative">
-                  <Input required type={showPassword ? "text" : "password"} placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" />
-                  <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-2.5 text-muted-foreground" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}>
+                  <Input
+                    required
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Senha"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute right-3 top-2.5 text-muted-foreground"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
-                {error && <p className="text-center text-sm font-semibold text-destructive">{error}</p>}
+                {error && (
+                  <p className="text-center text-sm font-semibold text-destructive">{error}</p>
+                )}
                 <Button type="submit" disabled={loading}>
                   {loading ? <Loader2 className="size-4 animate-spin" /> : "Entrar"}
                 </Button>
               </form>
               <div className="mt-4 flex flex-col gap-2 text-center text-sm">
-                <button type="button" onClick={() => { setMode("forgot"); setError(""); setForgotSent(false); }} className="font-semibold text-primary hover:underline">Esqueci minha senha</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("forgot");
+                    setError("");
+                    setForgotSent(false);
+                  }}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Esqueci minha senha
+                </button>
                 <p className="text-muted-foreground">
                   Não tem conta?{" "}
-                  <Link to="/cadastro" search={{ redirect: search.redirect, ...redirectSearch } as any} className="font-semibold text-primary hover:underline">
+                  <Link
+                    to="/cadastro"
+                    search={{ redirect: search.redirect, ...redirectSearch } as any}
+                    className="font-semibold text-primary hover:underline"
+                  >
                     Criar conta
                   </Link>
                 </p>
@@ -137,21 +173,44 @@ function LoginPage() {
 
           {mode === "forgot" && (
             <>
-              <button onClick={() => { setMode("login"); setError(""); }} className="text-sm font-semibold text-primary">← Voltar</button>
+              <button
+                onClick={() => {
+                  setMode("login");
+                  setError("");
+                }}
+                className="text-sm font-semibold text-primary"
+              >
+                ← Voltar
+              </button>
               <h1 className="mt-2 text-center text-3xl font-bold">Recuperar senha</h1>
               {forgotSent ? (
                 <p className="mt-4 text-center text-sm text-muted-foreground">
-                  Se {forgotEmail} tiver uma conta na Entrô, enviamos um e-mail com o link para redefinir sua senha. Abra o link e você
-                  poderá criar uma nova senha em "Minha conta".
+                  Se {forgotEmail} tiver uma conta na Entrô, enviamos um e-mail com o link para
+                  redefinir sua senha. Abra o link e você poderá criar uma nova senha em "Minha
+                  conta".
                 </p>
               ) : (
                 <>
-                  <p className="mt-2 text-center text-sm text-muted-foreground">Digite seu e-mail para receber o link de redefinição de senha.</p>
+                  <p className="mt-2 text-center text-sm text-muted-foreground">
+                    Digite seu e-mail para receber o link de redefinição de senha.
+                  </p>
                   <form onSubmit={sendResetEmail} className="mt-5 grid gap-3">
-                    <Input required type="email" placeholder="E-mail" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
-                    {error && <p className="text-center text-sm font-semibold text-destructive">{error}</p>}
+                    <Input
+                      required
+                      type="email"
+                      placeholder="E-mail"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                    />
+                    {error && (
+                      <p className="text-center text-sm font-semibold text-destructive">{error}</p>
+                    )}
                     <Button type="submit" disabled={loading}>
-                      {loading ? <Loader2 className="size-4 animate-spin" /> : "Enviar link de redefinição"}
+                      {loading ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        "Enviar link de redefinição"
+                      )}
                     </Button>
                   </form>
                 </>

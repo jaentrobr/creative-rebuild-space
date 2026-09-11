@@ -1,7 +1,8 @@
 /** Traduções de erros do banco relacionados à alteração de data e cálculo da data limite de reagendamento. */
 
 const RESCHEDULE_ERROR_MESSAGES: Record<string, string> = {
-  reschedule_not_allowed_status: "Não é possível alterar a data de um evento encerrado, cancelado ou suspenso",
+  reschedule_not_allowed_status:
+    "Não é possível alterar a data de um evento encerrado, cancelado ou suspenso",
   event_already_started: "O evento já começou",
   reschedule_limit_reached: "A data deste evento já foi alterada uma vez",
   reschedule_date_in_past: "Escolha uma data futura",
@@ -22,13 +23,19 @@ export function translateRescheduleError(error: unknown): string {
 }
 
 /** Data prevista do evento (original_starts_at, se existir, senão a data atual de início). */
-export function rescheduleBaseDate(event: { starts_at: string | null; original_starts_at: string | null }): Date | null {
+export function rescheduleBaseDate(event: {
+  starts_at: string | null;
+  original_starts_at: string | null;
+}): Date | null {
   const base = event.original_starts_at ?? event.starts_at;
   return base ? new Date(base) : null;
 }
 
 /** Prazo máximo (90 dias após a data prevista) para a nova data de início. */
-export function rescheduleDeadline(event: { starts_at: string | null; original_starts_at: string | null }): Date | null {
+export function rescheduleDeadline(event: {
+  starts_at: string | null;
+  original_starts_at: string | null;
+}): Date | null {
   const base = rescheduleBaseDate(event);
   if (!base) return null;
   const deadline = new Date(base);

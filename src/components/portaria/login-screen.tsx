@@ -37,7 +37,9 @@ export function LoginScreen() {
             className="h-16 w-full rounded-2xl border-2 border-white/15 bg-white/5 px-5 text-lg font-semibold text-white placeholder:text-white/40 focus:border-violet-400 focus:outline-none"
           />
           {gate.loginError && (
-            <p className="rounded-xl bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-300">{gate.loginError}</p>
+            <p className="rounded-xl bg-rose-500/15 px-4 py-3 text-sm font-bold text-rose-300">
+              {gate.loginError}
+            </p>
           )}
           <button
             type="submit"

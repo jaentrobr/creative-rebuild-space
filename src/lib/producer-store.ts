@@ -38,7 +38,10 @@ export type ProducerState = {
   frozenBalance: number;
   cancelledEvents: Record<string, { frozen: number; refunded: number; people: number; at: string }>;
   /** Eventos que já tiveram dinheiro recebido antecipado (adiantamento/antecipação). */
-  advancedEvents: Record<string, { amount: number; at: string; kind: "Adiantamento" | "Antecipação" }>;
+  advancedEvents: Record<
+    string,
+    { amount: number; at: string; kind: "Adiantamento" | "Antecipação" }
+  >;
   /** Controles definidos pela Entrô (painel interno). */
   withdrawBlocked: boolean;
   withdrawBlockReason: string;
@@ -64,8 +67,16 @@ let state: ProducerState = {
   frozenBalance: 0,
   cancelledEvents: {},
   advancedEvents: {
-    "ev-baile": { amount: 4850.5, at: new Date(Date.now() - 9 * 86400000).toISOString(), kind: "Adiantamento" },
-    "ev-fabrica": { amount: 2910.2, at: new Date(Date.now() - 3 * 86400000).toISOString(), kind: "Adiantamento" },
+    "ev-baile": {
+      amount: 4850.5,
+      at: new Date(Date.now() - 9 * 86400000).toISOString(),
+      kind: "Adiantamento",
+    },
+    "ev-fabrica": {
+      amount: 2910.2,
+      at: new Date(Date.now() - 3 * 86400000).toISOString(),
+      kind: "Adiantamento",
+    },
   },
   withdrawBlocked: false,
   withdrawBlockReason: "",
@@ -111,7 +122,9 @@ export const producerActions = {
     const event = state.events.find((e) => e.id === id);
     if (!event || event.status === "Cancelado") return;
     if (state.advancedEvents[id]) return;
-    const payers = eventParticipants(id).filter((p) => p.status === "Válido" || p.status === "Utilizado");
+    const payers = eventParticipants(id).filter(
+      (p) => p.status === "Válido" || p.status === "Utilizado",
+    );
     const total = Number(payers.reduce((sum, p) => sum + p.price, 0).toFixed(2));
     const now = new Date().toISOString();
     const newRefunds: Refund[] = payers.map((p) => ({
@@ -127,11 +140,16 @@ export const producerActions = {
       status: "Processando",
     }));
     set({
-      events: state.events.map((e) => (e.id === id ? { ...e, status: "Cancelado", salesPaused: true } : e)),
+      events: state.events.map((e) =>
+        e.id === id ? { ...e, status: "Cancelado", salesPaused: true } : e,
+      ),
       refunds: [...newRefunds, ...state.refunds],
       frozenBalance: Number((state.frozenBalance + total).toFixed(2)),
       availableBalance: Number((state.availableBalance - total).toFixed(2)),
-      cancelledEvents: { ...state.cancelledEvents, [id]: { frozen: total, refunded: total, people: payers.length, at: now } },
+      cancelledEvents: {
+        ...state.cancelledEvents,
+        [id]: { frozen: total, refunded: total, people: payers.length, at: now },
+      },
     });
   },
   addEvent(event: ProducerEvent, types: ProducerTicketType[]) {
@@ -186,7 +204,9 @@ export const producerActions = {
       participants: state.participants.map((p) =>
         p.id === participantId ? { ...p, status: "Utilizado", checkedIn: true } : p,
       ),
-      gateUsers: state.gateUsers.map((g) => (g.id === gateUserId ? { ...g, checkins: g.checkins + 1 } : g)),
+      gateUsers: state.gateUsers.map((g) =>
+        g.id === gateUserId ? { ...g, checkins: g.checkins + 1 } : g,
+      ),
     });
   },
   updateProfile(patch: Partial<typeof producerProfile>) {
@@ -210,7 +230,10 @@ export const producerActions = {
   /** Registra dinheiro recebido antes do evento: trava o cancelamento desse evento. */
   registerAdvance(eventId: string, amount: number, kind: "Adiantamento" | "Antecipação") {
     set({
-      advancedEvents: { ...state.advancedEvents, [eventId]: { amount: Number(amount.toFixed(2)), at: new Date().toISOString(), kind } },
+      advancedEvents: {
+        ...state.advancedEvents,
+        [eventId]: { amount: Number(amount.toFixed(2)), at: new Date().toISOString(), kind },
+      },
     });
   },
   setWithdrawBlocked(blocked: boolean, reason = "") {

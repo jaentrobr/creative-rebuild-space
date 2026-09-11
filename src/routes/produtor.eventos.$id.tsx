@@ -1,6 +1,14 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Copy, Download, PauseCircle, RefreshCw, Share2, XCircle } from "lucide-react";
+import {
+  CalendarClock,
+  Copy,
+  Download,
+  PauseCircle,
+  RefreshCw,
+  Share2,
+  XCircle,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { RescheduleDialog } from "@/components/producer/reschedule-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -8,7 +16,12 @@ import { db } from "@/integrations/meu-supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useEvent, useEventTicketTypes } from "@/lib/producer-queries";
 import { rescheduleDeadline, translateRescheduleError } from "@/lib/reschedule";
-import { PanelCard, ProducerLayout, StatCard, StatusPill } from "@/components/producer/producer-layout";
+import {
+  PanelCard,
+  ProducerLayout,
+  StatCard,
+  StatusPill,
+} from "@/components/producer/producer-layout";
 import { SalesChart } from "@/components/producer/sales-chart";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +38,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   csvDownload,
@@ -56,7 +75,10 @@ export const Route = createFileRoute("/produtor/eventos/$id")({
   head: () => ({
     meta: [
       { title: "Gerenciar evento — Painel Entrô" },
-      { name: "description", content: "Vendas, participantes, cortesias, cupons, divulgadores e portaria do seu evento." },
+      {
+        name: "description",
+        content: "Vendas, participantes, cortesias, cupons, divulgadores e portaria do seu evento.",
+      },
       { property: "og:title", content: "Gerenciar evento — Painel Entrô" },
       { property: "og:description", content: "Tudo o que acontece no seu evento em tempo real." },
       { property: "og:type", content: "website" },
@@ -73,8 +95,14 @@ function ManageEvent() {
   const { producer } = useAuth();
   const { data: realEvent } = useEvent(id);
   const { data: ticketTypesReal } = useEventTicketTypes(id);
-  const lotsReal = useMemo(() => (ticketTypesReal ?? []).flatMap((t) => t.lots ?? []), [ticketTypesReal]);
-  const soldCount = useMemo(() => lotsReal.reduce((s, l) => s + (l.sold_count ?? 0), 0), [lotsReal]);
+  const lotsReal = useMemo(
+    () => (ticketTypesReal ?? []).flatMap((t) => t.lots ?? []),
+    [ticketTypesReal],
+  );
+  const soldCount = useMemo(
+    () => lotsReal.reduce((s, l) => s + (l.sold_count ?? 0), 0),
+    [lotsReal],
+  );
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const { data: rescheduleSummaryRaw } = useQuery({
     queryKey: ["reschedule-summary", id],
@@ -89,7 +117,9 @@ function ManageEvent() {
   if (!event) {
     return (
       <ProducerLayout title="Evento não encontrado">
-        <Button asChild><Link to="/produtor/eventos">Voltar para meus eventos</Link></Button>
+        <Button asChild>
+          <Link to="/produtor/eventos">Voltar para meus eventos</Link>
+        </Button>
       </ProducerLayout>
     );
   }
@@ -100,7 +130,8 @@ function ManageEvent() {
   const types = initialTicketTypes[event.id] ?? [];
   const advanced = store.advancedEvents[event.id] ?? null;
 
-  const canReschedule = !!realEvent && !["ended", "canceled", "suspended"].includes(realEvent.status);
+  const canReschedule =
+    !!realEvent && !["ended", "canceled", "suspended"].includes(realEvent.status);
   const alreadyRescheduled = (realEvent?.reschedule_count ?? 0) >= 1;
   const deadline = realEvent ? rescheduleDeadline(realEvent) : null;
 
@@ -111,7 +142,9 @@ function ManageEvent() {
       actions={
         <>
           <StatusPill status={event.salesPaused ? "Vendas pausadas" : event.status} />
-          <Button variant="outline" size="sm" asChild><Link to="/produtor/eventos">Voltar</Link></Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/produtor/eventos">Voltar</Link>
+          </Button>
         </>
       }
     >
@@ -127,7 +160,11 @@ function ManageEvent() {
               ["portaria", "Portaria"],
               ["financeiro", "Financeiro"],
             ].map(([value, label]) => (
-              <TabsTrigger key={value} value={value!} className="shrink-0 whitespace-nowrap px-3 py-2 text-sm lg:flex-1">
+              <TabsTrigger
+                key={value}
+                value={value!}
+                className="shrink-0 whitespace-nowrap px-3 py-2 text-sm lg:flex-1"
+              >
                 {label}
               </TabsTrigger>
             ))}
@@ -135,36 +172,61 @@ function ManageEvent() {
         </div>
 
         <TabsContent value="visao" className="mt-4 space-y-4">
-          <Overview eventId={event.id} sold={sold} capacity={capacity} people={people} types={types} realEvent={realEvent ?? null} rescheduleSummary={rescheduleSummaryRaw ?? null} />
+          <Overview
+            eventId={event.id}
+            sold={sold}
+            capacity={capacity}
+            people={people}
+            types={types}
+            realEvent={realEvent ?? null}
+            rescheduleSummary={rescheduleSummaryRaw ?? null}
+          />
           <PanelCard title="Controles do evento">
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => producerActions.updateEvent(event.id, { salesPaused: !event.salesPaused })}>
-                <PauseCircle className="size-4" /> {event.salesPaused ? "Retomar vendas" : "Pausar vendas"}
+              <Button
+                variant="outline"
+                onClick={() =>
+                  producerActions.updateEvent(event.id, { salesPaused: !event.salesPaused })
+                }
+              >
+                <PauseCircle className="size-4" />{" "}
+                {event.salesPaused ? "Retomar vendas" : "Pausar vendas"}
               </Button>
               {advanced ? (
-                <Button variant="outline" disabled><XCircle className="size-4" /> Cancelar evento</Button>
+                <Button variant="outline" disabled>
+                  <XCircle className="size-4" /> Cancelar evento
+                </Button>
               ) : (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline"><XCircle className="size-4" /> Cancelar evento</Button>
+                    <Button variant="outline">
+                      <XCircle className="size-4" /> Cancelar evento
+                    </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Cancelar {event.name}?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Todo o dinheiro deste evento é congelado na hora e estornado integralmente para quem comprou. O evento sai do ar e essa ação não tem volta.
+                        Todo o dinheiro deste evento é congelado na hora e estornado integralmente
+                        para quem comprou. O evento sai do ar e essa ação não tem volta.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Voltar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => producerActions.cancelEvent(event.id)}>Cancelar evento</AlertDialogAction>
+                      <AlertDialogAction onClick={() => producerActions.cancelEvent(event.id)}>
+                        Cancelar evento
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               )}
               {canReschedule ? (
                 alreadyRescheduled ? (
-                  <Button variant="outline" disabled title={`Data já alterada em ${realEvent?.rescheduled_at ? shortDateTime(realEvent.rescheduled_at) : ""}`}>
+                  <Button
+                    variant="outline"
+                    disabled
+                    title={`Data já alterada em ${realEvent?.rescheduled_at ? shortDateTime(realEvent.rescheduled_at) : ""}`}
+                  >
                     <CalendarClock className="size-4" /> Data já alterada
                   </Button>
                 ) : (
@@ -176,7 +238,8 @@ function ManageEvent() {
             </div>
             {canReschedule && alreadyRescheduled && realEvent?.rescheduled_at ? (
               <p className="mt-3 text-sm text-muted-foreground">
-                Data já alterada em {shortDateTime(realEvent.rescheduled_at)}. Se o evento não puder acontecer na nova data, será necessário cancelar.
+                Data já alterada em {shortDateTime(realEvent.rescheduled_at)}. Se o evento não puder
+                acontecer na nova data, será necessário cancelar.
               </p>
             ) : null}
             {canReschedule && !alreadyRescheduled ? (
@@ -188,8 +251,9 @@ function ManageEvent() {
             ) : null}
             {advanced ? (
               <p className="mt-3 rounded-xl bg-sun p-3 text-sm font-bold text-ink">
-                Você já recebeu {brl(advanced.amount)} deste evento de forma antecipada ({advanced.kind.toLowerCase()} em {shortDate(advanced.at)}).
-                Por isso o cancelamento não está mais disponível. Fale com a Entrô pelo suporte se precisar resolver algo.
+                Você já recebeu {brl(advanced.amount)} deste evento de forma antecipada (
+                {advanced.kind.toLowerCase()} em {shortDate(advanced.at)}). Por isso o cancelamento
+                não está mais disponível. Fale com a Entrô pelo suporte se precisar resolver algo.
               </p>
             ) : null}
           </PanelCard>
@@ -204,21 +268,65 @@ function ManageEvent() {
           ) : null}
         </TabsContent>
 
-        <TabsContent value="participantes" className="mt-4"><Participants eventId={event.id} eventName={event.name} types={types} rescheduleCount={realEvent?.reschedule_count ?? 0} realEventId={realEvent?.id ?? null} /></TabsContent>
-        <TabsContent value="cortesias" className="mt-4"><Courtesies eventId={event.id} limit={event.settings.courtesyLimit} types={types} /></TabsContent>
-        <TabsContent value="cupons" className="mt-4"><Coupons eventId={event.id} types={types} /></TabsContent>
-        <TabsContent value="divulgadores" className="mt-4"><Promoters eventId={event.id} slug={event.slug} /></TabsContent>
-        <TabsContent value="portaria" className="mt-4"><GateTeam eventId={event.id} /></TabsContent>
-        <TabsContent value="financeiro" className="mt-4"><EventFinance eventId={event.id} /></TabsContent>
+        <TabsContent value="participantes" className="mt-4">
+          <Participants
+            eventId={event.id}
+            eventName={event.name}
+            types={types}
+            rescheduleCount={realEvent?.reschedule_count ?? 0}
+            realEventId={realEvent?.id ?? null}
+          />
+        </TabsContent>
+        <TabsContent value="cortesias" className="mt-4">
+          <Courtesies eventId={event.id} limit={event.settings.courtesyLimit} types={types} />
+        </TabsContent>
+        <TabsContent value="cupons" className="mt-4">
+          <Coupons eventId={event.id} types={types} />
+        </TabsContent>
+        <TabsContent value="divulgadores" className="mt-4">
+          <Promoters eventId={event.id} slug={event.slug} />
+        </TabsContent>
+        <TabsContent value="portaria" className="mt-4">
+          <GateTeam eventId={event.id} />
+        </TabsContent>
+        <TabsContent value="financeiro" className="mt-4">
+          <EventFinance eventId={event.id} />
+        </TabsContent>
       </Tabs>
     </ProducerLayout>
   );
 }
 
-type TypeList = { id: string; name: string; lots: { id: string; name: string; price: number; quantity: number; sold: number }[] }[];
+type TypeList = {
+  id: string;
+  name: string;
+  lots: { id: string; name: string; price: number; quantity: number; sold: number }[];
+}[];
 
-function Overview({ eventId, sold, capacity, people, types, realEvent, rescheduleSummary }: { eventId: string; sold: number; capacity: number; people: ReturnType<typeof eventParticipants>; types: TypeList; realEvent: import("@/integrations/meu-supabase/types").Tables<"events"> | null; rescheduleSummary: { keep_count: number; refund_count: number; pending_count: number } | null }) {
-  const chart = useMemo(() => salesByDay.filter((p) => p.eventId === eventId).map((p) => ({ label: p.label, value: p.value })), [eventId]);
+function Overview({
+  eventId,
+  sold,
+  capacity,
+  people,
+  types,
+  realEvent,
+  rescheduleSummary,
+}: {
+  eventId: string;
+  sold: number;
+  capacity: number;
+  people: ReturnType<typeof eventParticipants>;
+  types: TypeList;
+  realEvent: import("@/integrations/meu-supabase/types").Tables<"events"> | null;
+  rescheduleSummary: { keep_count: number; refund_count: number; pending_count: number } | null;
+}) {
+  const chart = useMemo(
+    () =>
+      salesByDay
+        .filter((p) => p.eventId === eventId)
+        .map((p) => ({ label: p.label, value: p.value })),
+    [eventId],
+  );
   const pix = people.filter((p) => p.payment === "Pix").length;
   const card = people.length - pix;
   const checkins = people.filter((p) => p.checkedIn).length;
@@ -228,7 +336,11 @@ function Overview({ eventId, sold, capacity, people, types, realEvent, reschedul
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Ingressos vendidos" value={`${sold}/${capacity}`} tone="primary" />
         <StatCard label="Receita" value={brl(eventRevenue(eventId))} />
-        <StatCard label="Pix / Cartão" value={`${pix} / ${card}`} hint="Vendas por forma de pagamento" />
+        <StatCard
+          label="Pix / Cartão"
+          value={`${pix} / ${card}`}
+          hint="Vendas por forma de pagamento"
+        />
         <StatCard label="Check-ins" value={`${checkins}/${people.length}`} tone="sun" />
       </div>
       {realEvent && (realEvent.reschedule_count ?? 0) >= 1 ? (
@@ -236,24 +348,40 @@ function Overview({ eventId, sold, capacity, people, types, realEvent, reschedul
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <p className="text-xs uppercase text-muted-foreground">Data anterior</p>
-              <p className="font-semibold">{realEvent.previous_starts_at ? shortDateTime(realEvent.previous_starts_at) : "—"}</p>
+              <p className="font-semibold">
+                {realEvent.previous_starts_at ? shortDateTime(realEvent.previous_starts_at) : "—"}
+              </p>
             </div>
             <div>
               <p className="text-xs uppercase text-muted-foreground">Nova data</p>
-              <p className="font-semibold">{realEvent.starts_at ? shortDateTime(realEvent.starts_at) : "—"}</p>
+              <p className="font-semibold">
+                {realEvent.starts_at ? shortDateTime(realEvent.starts_at) : "—"}
+              </p>
             </div>
           </div>
-          {realEvent.reschedule_reason ? <p className="mt-3 text-sm text-muted-foreground">Motivo: {realEvent.reschedule_reason}</p> : null}
+          {realEvent.reschedule_reason ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Motivo: {realEvent.reschedule_reason}
+            </p>
+          ) : null}
           {rescheduleSummary ? (
             <div className="mt-3 flex flex-wrap gap-3 text-sm">
-              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Mantiveram: {rescheduleSummary.keep_count}</span>
-              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Pediram reembolso: {rescheduleSummary.refund_count}</span>
-              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Sem resposta: {rescheduleSummary.pending_count}</span>
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">
+                Mantiveram: {rescheduleSummary.keep_count}
+              </span>
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">
+                Pediram reembolso: {rescheduleSummary.refund_count}
+              </span>
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">
+                Sem resposta: {rescheduleSummary.pending_count}
+              </span>
             </div>
           ) : null}
         </PanelCard>
       ) : null}
-      <PanelCard title="Vendas por dia"><SalesChart data={chart} /></PanelCard>
+      <PanelCard title="Vendas por dia">
+        <SalesChart data={chart} />
+      </PanelCard>
       <PanelCard title="Vendidos por tipo e lote">
         <div className="space-y-4">
           {types.map((type) => (
@@ -261,13 +389,24 @@ function Overview({ eventId, sold, capacity, people, types, realEvent, reschedul
               <p className="font-display text-base font-extrabold">{type.name}</p>
               {type.lots.map((l) => (
                 <div key={l.id} className="mt-2">
-                  <div className="flex justify-between text-sm"><span>{l.name} · {brl(l.price)}</span><span className="font-semibold">{l.sold}/{l.quantity}</span></div>
+                  <div className="flex justify-between text-sm">
+                    <span>
+                      {l.name} · {brl(l.price)}
+                    </span>
+                    <span className="font-semibold">
+                      {l.sold}/{l.quantity}
+                    </span>
+                  </div>
                   <Progress value={(l.sold / (l.quantity || 1)) * 100} className="mt-1" />
                 </div>
               ))}
             </div>
           ))}
-          {types.length === 0 ? <p className="text-sm text-muted-foreground">Este evento ainda não tem ingressos configurados.</p> : null}
+          {types.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Este evento ainda não tem ingressos configurados.
+            </p>
+          ) : null}
         </div>
       </PanelCard>
     </>
@@ -276,7 +415,19 @@ function Overview({ eventId, sold, capacity, people, types, realEvent, reschedul
 
 const CHOICE_LABELS: Record<string, string> = { keep: "Manteve", refund: "Reembolso" };
 
-function Participants({ eventId, eventName, types, rescheduleCount, realEventId }: { eventId: string; eventName: string; types: TypeList; rescheduleCount: number; realEventId: string | null }) {
+function Participants({
+  eventId,
+  eventName,
+  types,
+  rescheduleCount,
+  realEventId,
+}: {
+  eventId: string;
+  eventName: string;
+  types: TypeList;
+  rescheduleCount: number;
+  realEventId: string | null;
+}) {
   const store = useProducer();
   const all = store.participants.filter((p) => p.eventId === eventId);
   const [term, setTerm] = useState("");
@@ -290,7 +441,10 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
   const { data: choiceRows } = useQuery({
     queryKey: ["event-reschedule-choices", realEventId],
     queryFn: async () => {
-      const { data, error } = await db.from("ticket_reschedule_choices").select("ticket_id, choice").eq("event_id", realEventId as string);
+      const { data, error } = await db
+        .from("ticket_reschedule_choices")
+        .select("ticket_id, choice")
+        .eq("event_id", realEventId as string);
       if (error) throw error;
       return data ?? [];
     },
@@ -320,8 +474,30 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
           variant="outline"
           onClick={() =>
             csvDownload(`participantes-${eventName}.csv`, [
-              ["Nome", "E-mail", "CPF", "Tipo", "Lote", "Meia", "Pagamento", "Status", "Check-in", "Código"],
-              ...list.map((p) => [p.name, p.email, maskCpfPartial(p.cpf), p.type, p.lot, p.half ? "Sim" : "Não", p.payment, p.status, p.checkedIn ? "Feito" : "Pendente", p.code]),
+              [
+                "Nome",
+                "E-mail",
+                "CPF",
+                "Tipo",
+                "Lote",
+                "Meia",
+                "Pagamento",
+                "Status",
+                "Check-in",
+                "Código",
+              ],
+              ...list.map((p) => [
+                p.name,
+                p.email,
+                maskCpfPartial(p.cpf),
+                p.type,
+                p.lot,
+                p.half ? "Sim" : "Não",
+                p.payment,
+                p.status,
+                p.checkedIn ? "Feito" : "Pendente",
+                p.code,
+              ]),
             ])
           }
         >
@@ -330,22 +506,41 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
       }
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Input placeholder="Buscar por nome, CPF ou e-mail" value={term} onChange={(e) => setTerm(e.target.value)} className="lg:col-span-2" />
+        <Input
+          placeholder="Buscar por nome, CPF ou e-mail"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          className="lg:col-span-2"
+        />
         <Select value={type} onValueChange={setType}>
-          <SelectTrigger aria-label="Tipo"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="Tipo">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os tipos</SelectItem>
-            {types.map((t) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
+            {types.map((t) => (
+              <SelectItem key={t.id} value={t.name}>
+                {t.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="Status">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
-            {["todos", "Válido", "Utilizado", "Transferido", "Reembolsado"].map((s) => <SelectItem key={s} value={s}>{s === "todos" ? "Todos os status" : s}</SelectItem>)}
+            {["todos", "Válido", "Utilizado", "Transferido", "Reembolsado"].map((s) => (
+              <SelectItem key={s} value={s}>
+                {s === "todos" ? "Todos os status" : s}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={checkin} onValueChange={setCheckin}>
-          <SelectTrigger aria-label="Check-in"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="Check-in">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Check-in: todos</SelectItem>
             <SelectItem value="feito">Check-in feito</SelectItem>
@@ -353,7 +548,9 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
           </SelectContent>
         </Select>
         <Select value={half} onValueChange={setHalf}>
-          <SelectTrigger aria-label="Meia-entrada"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="Meia-entrada">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Meia: todos</SelectItem>
             <SelectItem value="sim">Só meia-entrada</SelectItem>
@@ -362,7 +559,9 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
         </Select>
         {showChoice ? (
           <Select value={choiceFilter} onValueChange={setChoiceFilter}>
-            <SelectTrigger aria-label="Após alteração"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Após alteração">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Após alteração: todos</SelectItem>
               <SelectItem value="keep">Manteve</SelectItem>
@@ -376,7 +575,21 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="text-xs uppercase text-muted-foreground">
-            <tr>{["Nome", "CPF", "Tipo / lote", "Pagamento", "Status", "Check-in", ...(showChoice ? ["Após alteração"] : [])].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr>
+            <tr>
+              {[
+                "Nome",
+                "CPF",
+                "Tipo / lote",
+                "Pagamento",
+                "Status",
+                "Check-in",
+                ...(showChoice ? ["Após alteração"] : []),
+              ].map((h) => (
+                <th key={h} className="py-2 pr-3">
+                  {h}
+                </th>
+              ))}
+            </tr>
           </thead>
           <tbody>
             {list.slice(0, 60).map((p) => (
@@ -386,48 +599,109 @@ function Participants({ eventId, eventName, types, rescheduleCount, realEventId 
                   <p className="text-xs text-muted-foreground">{p.email}</p>
                 </td>
                 <td className="py-2 pr-3">{maskCpfPartial(p.cpf)}</td>
-                <td className="py-2 pr-3">{p.type} · {p.lot}{p.half ? " · meia" : ""}</td>
-                <td className="py-2 pr-3">{p.payment}{p.installments > 1 ? ` ${p.installments}x` : ""}</td>
-                <td className="py-2 pr-3"><StatusPill status={p.status} /></td>
+                <td className="py-2 pr-3">
+                  {p.type} · {p.lot}
+                  {p.half ? " · meia" : ""}
+                </td>
+                <td className="py-2 pr-3">
+                  {p.payment}
+                  {p.installments > 1 ? ` ${p.installments}x` : ""}
+                </td>
+                <td className="py-2 pr-3">
+                  <StatusPill status={p.status} />
+                </td>
                 <td className="py-2 pr-3">{p.checkedIn ? "Feito" : "Pendente"}</td>
-                {showChoice ? <td className="py-2 pr-3">{CHOICE_LABELS[choiceOf(p.id)] ?? "Sem resposta"}</td> : null}
+                {showChoice ? (
+                  <td className="py-2 pr-3">{CHOICE_LABELS[choiceOf(p.id)] ?? "Sem resposta"}</td>
+                ) : null}
               </tr>
             ))}
           </tbody>
         </table>
-        {list.length > 60 ? <p className="mt-3 text-xs text-muted-foreground">Mostrando 60 de {list.length}. Use os filtros ou exporte o CSV.</p> : null}
+        {list.length > 60 ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Mostrando 60 de {list.length}. Use os filtros ou exporte o CSV.
+          </p>
+        ) : null}
       </div>
     </PanelCard>
   );
 }
 
-function Courtesies({ eventId, limit, types }: { eventId: string; limit: number; types: TypeList }) {
+function Courtesies({
+  eventId,
+  limit,
+  types,
+}: {
+  eventId: string;
+  limit: number;
+  types: TypeList;
+}) {
   const { courtesies } = useProducer();
   const list = courtesies.filter((c) => c.eventId === eventId);
   const used = list.reduce((s, c) => s + c.quantity, 0);
-  const [form, setForm] = useState({ name: "", email: "", type: types[0]?.name ?? "Pista", quantity: "1" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    type: types[0]?.name ?? "Pista",
+    quantity: "1",
+  });
 
   return (
     <div className="space-y-4">
       <PanelCard title="Emitir cortesia">
         <div className="grid gap-3 sm:grid-cols-4">
-          <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div><Label>E-mail</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+          <div>
+            <Label>Nome</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <Label>E-mail</Label>
+            <Input
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+          </div>
           <div>
             <Label>Tipo de ingresso</Label>
             <Select value={form.type} onValueChange={(value) => setForm({ ...form, type: value })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{types.map((t) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {types.map((t) => (
+                  <SelectItem key={t.id} value={t.name}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
-          <div><Label>Quantidade</Label><Input inputMode="numeric" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/\D/g, "") })} /></div>
+          <div>
+            <Label>Quantidade</Label>
+            <Input
+              inputMode="numeric"
+              value={form.quantity}
+              onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/\D/g, "") })}
+            />
+          </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Limite de cortesias deste evento: {used} de {limit} usadas.</p>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Limite de cortesias deste evento: {used} de {limit} usadas.
+        </p>
         <Button
           className="mt-3"
           disabled={!form.name || used + Number(form.quantity || 0) > limit}
           onClick={() => {
-            const courtesy: Courtesy = { id: `ct-${Date.now()}`, eventId, name: form.name, email: form.email, type: form.type, quantity: Number(form.quantity || 1), status: "Enviada" };
+            const courtesy: Courtesy = {
+              id: `ct-${Date.now()}`,
+              eventId,
+              name: form.name,
+              email: form.email,
+              type: form.type,
+              quantity: Number(form.quantity || 1),
+              status: "Enviada",
+            };
             producerActions.addCourtesy(courtesy);
             setForm({ ...form, name: "", email: "", quantity: "1" });
           }}
@@ -441,17 +715,33 @@ function Courtesies({ eventId, limit, types }: { eventId: string; limit: number;
           {list.map((c) => (
             <div key={c.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
               <div>
-                <p className="font-semibold">{c.name} · {c.quantity}x {c.type}</p>
+                <p className="font-semibold">
+                  {c.name} · {c.quantity}x {c.type}
+                </p>
                 <p className="text-xs text-muted-foreground">{c.email}</p>
               </div>
               <StatusPill status={c.status} />
               <div className="ml-auto flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => producerActions.updateCourtesy(c.id, { status: "Enviada" })}>Reenviar</Button>
-                <Button size="sm" variant="ghost" onClick={() => producerActions.updateCourtesy(c.id, { status: "Cancelada" })}>Cancelar</Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => producerActions.updateCourtesy(c.id, { status: "Enviada" })}
+                >
+                  Reenviar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => producerActions.updateCourtesy(c.id, { status: "Cancelada" })}
+                >
+                  Cancelar
+                </Button>
               </div>
             </div>
           ))}
-          {list.length === 0 ? <p className="py-3 text-sm text-muted-foreground">Nenhuma cortesia emitida.</p> : null}
+          {list.length === 0 ? (
+            <p className="py-3 text-sm text-muted-foreground">Nenhuma cortesia emitida.</p>
+          ) : null}
         </div>
       </PanelCard>
     </div>
@@ -461,25 +751,68 @@ function Courtesies({ eventId, limit, types }: { eventId: string; limit: number;
 function Coupons({ eventId, types }: { eventId: string; types: TypeList }) {
   const { coupons } = useProducer();
   const list = coupons.filter((c) => c.eventId === eventId);
-  const [form, setForm] = useState({ code: "", kind: "percent" as Coupon["kind"], amount: "10", limit: "100", validUntil: "" });
+  const [form, setForm] = useState({
+    code: "",
+    kind: "percent" as Coupon["kind"],
+    amount: "10",
+    limit: "100",
+    validUntil: "",
+  });
 
   return (
     <div className="space-y-4">
       <PanelCard title="Criar cupom">
         <div className="grid gap-3 sm:grid-cols-5">
-          <div><Label>Código</Label><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} /></div>
+          <div>
+            <Label>Código</Label>
+            <Input
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+            />
+          </div>
           <div>
             <Label>Desconto</Label>
-            <Select value={form.kind} onValueChange={(value) => setForm({ ...form, kind: value as Coupon["kind"] })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="percent">Em %</SelectItem><SelectItem value="value">Em R$</SelectItem></SelectContent>
+            <Select
+              value={form.kind}
+              onValueChange={(value) => setForm({ ...form, kind: value as Coupon["kind"] })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percent">Em %</SelectItem>
+                <SelectItem value="value">Em R$</SelectItem>
+              </SelectContent>
             </Select>
           </div>
-          <div><Label>Valor</Label><Input inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/\D/g, "") })} /></div>
-          <div><Label>Limite de usos</Label><Input inputMode="numeric" value={form.limit} onChange={(e) => setForm({ ...form, limit: e.target.value.replace(/\D/g, "") })} /></div>
-          <div><Label>Validade</Label><Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} /></div>
+          <div>
+            <Label>Valor</Label>
+            <Input
+              inputMode="numeric"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/\D/g, "") })}
+            />
+          </div>
+          <div>
+            <Label>Limite de usos</Label>
+            <Input
+              inputMode="numeric"
+              value={form.limit}
+              onChange={(e) => setForm({ ...form, limit: e.target.value.replace(/\D/g, "") })}
+            />
+          </div>
+          <div>
+            <Label>Validade</Label>
+            <Input
+              type="date"
+              value={form.validUntil}
+              onChange={(e) => setForm({ ...form, validUntil: e.target.value })}
+            />
+          </div>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Vale para: {types.map((t) => t.name).join(", ") || "todos os tipos"}</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Vale para: {types.map((t) => t.name).join(", ") || "todos os tipos"}
+        </p>
         <Button
           className="mt-3"
           disabled={!form.code}
@@ -492,7 +825,9 @@ function Coupons({ eventId, types }: { eventId: string; types: TypeList }) {
               amount: Number(form.amount || 0),
               limit: Number(form.limit || 0),
               used: 0,
-              validUntil: form.validUntil ? new Date(form.validUntil).toISOString() : new Date().toISOString(),
+              validUntil: form.validUntil
+                ? new Date(form.validUntil).toISOString()
+                : new Date().toISOString(),
               types: types.map((t) => t.name),
               active: true,
             });
@@ -510,14 +845,26 @@ function Coupons({ eventId, types }: { eventId: string; types: TypeList }) {
               <div>
                 <p className="font-display text-base font-extrabold">{c.code}</p>
                 <p className="text-xs text-muted-foreground">
-                  {c.kind === "percent" ? `${c.amount}% de desconto` : `${brl(c.amount)} de desconto`} · {c.used}/{c.limit} usos · até {shortDate(c.validUntil)}
+                  {c.kind === "percent"
+                    ? `${c.amount}% de desconto`
+                    : `${brl(c.amount)} de desconto`}{" "}
+                  · {c.used}/{c.limit} usos · até {shortDate(c.validUntil)}
                 </p>
               </div>
               <StatusPill status={c.active ? "Ativo" : "Pausado"} />
-              <Button size="sm" variant="ghost" className="ml-auto" onClick={() => producerActions.toggleCoupon(c.id)}>{c.active ? "Desativar" : "Ativar"}</Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="ml-auto"
+                onClick={() => producerActions.toggleCoupon(c.id)}
+              >
+                {c.active ? "Desativar" : "Ativar"}
+              </Button>
             </div>
           ))}
-          {list.length === 0 ? <p className="py-3 text-sm text-muted-foreground">Nenhum cupom criado.</p> : null}
+          {list.length === 0 ? (
+            <p className="py-3 text-sm text-muted-foreground">Nenhum cupom criado.</p>
+          ) : null}
         </div>
       </PanelCard>
     </div>
@@ -527,23 +874,65 @@ function Coupons({ eventId, types }: { eventId: string; types: TypeList }) {
 function Promoters({ eventId, slug }: { eventId: string; slug: string }) {
   const { promoters } = useProducer();
   const list = promoters.filter((p) => p.eventId === eventId).sort((a, b) => b.sold - a.sold);
-  const [form, setForm] = useState({ name: "", whatsapp: "", code: "", kind: "percent" as Promoter["commissionKind"], commission: "10" });
+  const [form, setForm] = useState({
+    name: "",
+    whatsapp: "",
+    code: "",
+    kind: "percent" as Promoter["commissionKind"],
+    commission: "10",
+  });
   const [detail, setDetail] = useState<string | null>(null);
   const link = (code: string) => `https://jaentro.com.br/evento/${slug}?ref=${code}`;
-  const commissionDue = (p: Promoter) => (p.commissionKind === "percent" ? (p.revenue * p.commission) / 100 : p.commissionKind === "fixed" ? p.sold * p.commission : 0);
+  const commissionDue = (p: Promoter) =>
+    p.commissionKind === "percent"
+      ? (p.revenue * p.commission) / 100
+      : p.commissionKind === "fixed"
+        ? p.sold * p.commission
+        : 0;
   const selected = list.find((p) => p.id === detail);
 
   return (
     <div className="space-y-4">
       <PanelCard title="Novo divulgador">
         <div className="grid gap-3 sm:grid-cols-5">
-          <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value, code: form.code || randomPromoCode(e.target.value) })} /></div>
-          <div><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: maskPhone(e.target.value) })} /></div>
-          <div><Label>Código</Label><Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} /></div>
+          <div>
+            <Label>Nome</Label>
+            <Input
+              value={form.name}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  name: e.target.value,
+                  code: form.code || randomPromoCode(e.target.value),
+                })
+              }
+            />
+          </div>
+          <div>
+            <Label>WhatsApp</Label>
+            <Input
+              value={form.whatsapp}
+              onChange={(e) => setForm({ ...form, whatsapp: maskPhone(e.target.value) })}
+            />
+          </div>
+          <div>
+            <Label>Código</Label>
+            <Input
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+            />
+          </div>
           <div>
             <Label>Comissão</Label>
-            <Select value={form.kind} onValueChange={(value) => setForm({ ...form, kind: value as Promoter["commissionKind"] })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.kind}
+              onValueChange={(value) =>
+                setForm({ ...form, kind: value as Promoter["commissionKind"] })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sem comissão</SelectItem>
                 <SelectItem value="percent">% por ingresso</SelectItem>
@@ -551,7 +940,15 @@ function Promoters({ eventId, slug }: { eventId: string; slug: string }) {
               </SelectContent>
             </Select>
           </div>
-          <div><Label>Valor</Label><Input inputMode="numeric" disabled={form.kind === "none"} value={form.commission} onChange={(e) => setForm({ ...form, commission: e.target.value.replace(/\D/g, "") })} /></div>
+          <div>
+            <Label>Valor</Label>
+            <Input
+              inputMode="numeric"
+              disabled={form.kind === "none"}
+              value={form.commission}
+              onChange={(e) => setForm({ ...form, commission: e.target.value.replace(/\D/g, "") })}
+            />
+          </div>
         </div>
         <Button
           className="mt-3"
@@ -581,19 +978,41 @@ function Promoters({ eventId, slug }: { eventId: string; slug: string }) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="text-xs uppercase text-muted-foreground">
-              <tr>{["Divulgador", "Cliques", "Vendidos", "Receita", "Comissão", "Ações"].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr>
+              <tr>
+                {["Divulgador", "Cliques", "Vendidos", "Receita", "Comissão", "Ações"].map((h) => (
+                  <th key={h} className="py-2 pr-3">
+                    {h}
+                  </th>
+                ))}
+              </tr>
             </thead>
             <tbody>
               {list.map((p) => (
                 <tr key={p.id} className="border-t border-border align-top">
                   <td className="py-3 pr-3">
-                    <button className="font-semibold underline" onClick={() => setDetail(p.id)}>{p.name}</button>
-                    <p className="text-xs text-muted-foreground">{p.code} · {p.whatsapp}</p>
+                    <button className="font-semibold underline" onClick={() => setDetail(p.id)}>
+                      {p.name}
+                    </button>
+                    <p className="text-xs text-muted-foreground">
+                      {p.code} · {p.whatsapp}
+                    </p>
                     <p className="mt-1 break-all text-xs text-muted-foreground">{link(p.code)}</p>
                     <div className="mt-1 flex gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => void navigator.clipboard?.writeText(link(p.code))}><Copy className="size-4" /> Copiar link</Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void navigator.clipboard?.writeText(link(p.code))}
+                      >
+                        <Copy className="size-4" /> Copiar link
+                      </Button>
                       <Button size="sm" variant="ghost" asChild>
-                        <a href={`https://wa.me/?text=${encodeURIComponent(link(p.code))}`} target="_blank" rel="noreferrer"><Share2 className="size-4" /> WhatsApp</a>
+                        <a
+                          href={`https://wa.me/?text=${encodeURIComponent(link(p.code))}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Share2 className="size-4" /> WhatsApp
+                        </a>
                       </Button>
                     </div>
                   </td>
@@ -602,7 +1021,17 @@ function Promoters({ eventId, slug }: { eventId: string; slug: string }) {
                   <td className="py-3 pr-3">{brl(p.revenue)}</td>
                   <td className="py-3 pr-3">{brl(commissionDue(p))}</td>
                   <td className="py-3 pr-3">
-                    {p.paid ? <StatusPill status="Comissão paga" /> : <Button size="sm" variant="outline" onClick={() => producerActions.updatePromoter(p.id, { paid: true })}>Marcar como paga</Button>}
+                    {p.paid ? (
+                      <StatusPill status="Comissão paga" />
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => producerActions.updatePromoter(p.id, { paid: true })}
+                      >
+                        Marcar como paga
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -612,7 +1041,14 @@ function Promoters({ eventId, slug }: { eventId: string; slug: string }) {
       </PanelCard>
 
       {selected ? (
-        <PanelCard title={`Vendas de ${selected.name}`} action={<Button size="sm" variant="ghost" onClick={() => setDetail(null)}>Fechar</Button>}>
+        <PanelCard
+          title={`Vendas de ${selected.name}`}
+          action={
+            <Button size="sm" variant="ghost" onClick={() => setDetail(null)}>
+              Fechar
+            </Button>
+          }
+        >
           <div className="divide-y divide-border">
             {promoterDailySales(selected).map((row) => (
               <div key={row.label} className="flex justify-between py-2 text-sm">
@@ -645,23 +1081,56 @@ function GateTeam({ eventId }: { eventId: string }) {
     <div className="space-y-4">
       <PanelCard title="Novo login de portaria">
         <div className="grid gap-3 sm:grid-cols-3">
-          <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div><Label>Usuário</Label><Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} /></div>
+          <div>
+            <Label>Nome</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <Label>Usuário</Label>
+            <Input
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+            />
+          </div>
           <div>
             <Label>Senha gerada</Label>
             <div className="flex gap-2">
               <Input readOnly value={form.password} />
-              <Button size="icon" variant="outline" aria-label="Copiar senha" onClick={() => void navigator.clipboard?.writeText(form.password)}><Copy className="size-4" /></Button>
-              <Button size="icon" variant="outline" aria-label="Gerar nova senha" onClick={() => setForm({ ...form, password: randomPassword() })}><RefreshCw className="size-4" /></Button>
+              <Button
+                size="icon"
+                variant="outline"
+                aria-label="Copiar senha"
+                onClick={() => void navigator.clipboard?.writeText(form.password)}
+              >
+                <Copy className="size-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                aria-label="Gerar nova senha"
+                onClick={() => setForm({ ...form, password: randomPassword() })}
+              >
+                <RefreshCw className="size-4" />
+              </Button>
             </div>
           </div>
         </div>
-        <p className="mt-3 rounded-xl bg-muted p-3 text-xs text-muted-foreground">Permissão restrita: apenas check-in deste evento. Não vê vendas nem valores.</p>
+        <p className="mt-3 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+          Permissão restrita: apenas check-in deste evento. Não vê vendas nem valores.
+        </p>
         <Button
           className="mt-3"
           disabled={!form.name || !form.username}
           onClick={() => {
-            producerActions.addGateUser({ id: `gt-${Date.now()}`, eventId, name: form.name, username: form.username, password: form.password, active: true, checkins: 0 });
+            producerActions.addGateUser({
+              id: `gt-${Date.now()}`,
+              eventId,
+              name: form.name,
+              username: form.username,
+              password: form.password,
+              active: true,
+              checkins: 0,
+            });
             setForm({ name: "", username: "", password: randomPassword() });
           }}
         >
@@ -675,17 +1144,37 @@ function GateTeam({ eventId }: { eventId: string }) {
             <div key={user.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
               <div>
                 <p className="font-semibold">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.username} · {user.checkins} check-ins</p>
+                <p className="text-xs text-muted-foreground">
+                  {user.username} · {user.checkins} check-ins
+                </p>
               </div>
               <StatusPill status={user.active ? "Ativo" : "Pausado"} />
               <div className="ml-auto flex flex-wrap gap-2">
-                <Button size="sm" variant="ghost" onClick={() => producerActions.updateGateUser(user.id, { active: !user.active })}>{user.active ? "Desativar" : "Ativar"}</Button>
-                <Button size="sm" variant="ghost" onClick={() => producerActions.updateGateUser(user.id, { password: randomPassword() })}>Redefinir senha</Button>
-                <Button size="sm" variant="outline" onClick={() => copyInstructions(user)}>{copied === user.id ? "Copiado!" : "Copiar instruções de acesso"}</Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => producerActions.updateGateUser(user.id, { active: !user.active })}
+                >
+                  {user.active ? "Desativar" : "Ativar"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    producerActions.updateGateUser(user.id, { password: randomPassword() })
+                  }
+                >
+                  Redefinir senha
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => copyInstructions(user)}>
+                  {copied === user.id ? "Copiado!" : "Copiar instruções de acesso"}
+                </Button>
               </div>
             </div>
           ))}
-          {list.length === 0 ? <p className="py-3 text-sm text-muted-foreground">Nenhum login de portaria criado.</p> : null}
+          {list.length === 0 ? (
+            <p className="py-3 text-sm text-muted-foreground">Nenhum login de portaria criado.</p>
+          ) : null}
         </div>
       </PanelCard>
     </div>
@@ -711,7 +1200,12 @@ function EventFinance({ eventId }: { eventId: string }) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => csvDownload(`financeiro-${eventId}.csv`, [["Data", "Tipo", "Descrição", "Valor"], ...rows.map((r) => [shortDate(r.date), r.kind, r.description, r.amount])])}
+            onClick={() =>
+              csvDownload(`financeiro-${eventId}.csv`, [
+                ["Data", "Tipo", "Descrição", "Valor"],
+                ...rows.map((r) => [shortDate(r.date), r.kind, r.description, r.amount]),
+              ])
+            }
           >
             <Download className="size-4" /> Exportar CSV
           </Button>
@@ -722,15 +1216,24 @@ function EventFinance({ eventId }: { eventId: string }) {
             <div key={row.id} className="flex items-center justify-between py-3 text-sm">
               <div>
                 <p className="font-semibold">{row.description}</p>
-                <p className="text-xs text-muted-foreground">{shortDate(row.date)} · {row.kind}</p>
+                <p className="text-xs text-muted-foreground">
+                  {shortDate(row.date)} · {row.kind}
+                </p>
               </div>
-              <span className={row.amount < 0 ? "font-bold text-destructive" : "font-bold text-emerald-700"}>{brl(row.amount)}</span>
+              <span
+                className={
+                  row.amount < 0 ? "font-bold text-destructive" : "font-bold text-emerald-700"
+                }
+              >
+                {brl(row.amount)}
+              </span>
             </div>
           ))}
         </div>
       </PanelCard>
       <p className="text-xs text-muted-foreground">
-        Vendas no Pix liberam 48h úteis após o evento. Cartão cai 32 dias após cada compra, com 10% retido para chargeback até 30 dias depois do evento.
+        Vendas no Pix liberam 48h úteis após o evento. Cartão cai 32 dias após cada compra, com 10%
+        retido para chargeback até 30 dias depois do evento.
       </p>
     </div>
   );

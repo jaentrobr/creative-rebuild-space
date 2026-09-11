@@ -96,8 +96,10 @@ function openDb(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const idb = req.result;
-      if (!idb.objectStoreNames.contains("pending")) idb.createObjectStore("pending", { keyPath: "localId" });
-      if (!idb.objectStoreNames.contains("participants")) idb.createObjectStore("participants", { keyPath: "qrToken" });
+      if (!idb.objectStoreNames.contains("pending"))
+        idb.createObjectStore("pending", { keyPath: "localId" });
+      if (!idb.objectStoreNames.contains("participants"))
+        idb.createObjectStore("participants", { keyPath: "qrToken" });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -155,11 +157,18 @@ function classifyLocally(qrToken: string): ScanResult {
     if (participant.status === "used") return { kind: "already_used", ticket: participant };
     return { kind: "canceled", ticket: participant };
   }
-  return participant.half ? { kind: "granted_check_doc", ticket: participant, offline: true } : { kind: "granted", ticket: participant, offline: true };
+  return participant.half
+    ? { kind: "granted_check_doc", ticket: participant, offline: true }
+    : { kind: "granted", ticket: participant, offline: true };
 }
 
 function recordHistory(result: ScanResult, offline: boolean) {
-  const label = "ticket" in result && result.ticket ? result.ticket.name : "code" in result ? result.code : "Ingresso";
+  const label =
+    "ticket" in result && result.ticket
+      ? result.ticket.name
+      : "code" in result
+        ? result.code
+        : "Ingresso";
   const entry: HistoryEntry = {
     id: crypto.randomUUID(),
     at: new Date().toISOString(),
@@ -178,7 +187,13 @@ export const gateActions = {
     }
     const pending = await idbGetAll<PendingCheckin>("pending");
     const participants = await idbGetAll<DisplayTicket>("participants");
-    set({ loading: false, signedIn: !!data.session?.user, pending, participants, downloaded: participants.length > 0 });
+    set({
+      loading: false,
+      signedIn: !!data.session?.user,
+      pending,
+      participants,
+      downloaded: participants.length > 0,
+    });
   },
 
   async loadStaffEvents(userId: string) {
@@ -220,7 +235,9 @@ export const gateActions = {
 
   async logout() {
     if (state.pending.length > 0) {
-      set({ logoutBlocked: `Você tem ${state.pending.length} check-ins não enviados. Conecte-se à internet antes de sair.` });
+      set({
+        logoutBlocked: `Você tem ${state.pending.length} check-ins não enviados. Conecte-se à internet antes de sair.`,
+      });
       return false;
     }
     await db.auth.signOut();
@@ -301,10 +318,20 @@ export const gateActions = {
     if (!state.online) {
       const result = classifyLocally(code);
       if (result.kind === "granted" || result.kind === "granted_check_doc") {
-        const item: PendingCheckin = { localId: crypto.randomUUID(), qrToken: code, scannedAt: new Date().toISOString(), deviceId: deviceId() };
+        const item: PendingCheckin = {
+          localId: crypto.randomUUID(),
+          qrToken: code,
+          scannedAt: new Date().toISOString(),
+          deviceId: deviceId(),
+        };
         await idbPut("pending", item);
-        const participants = state.participants.map((p) => (p.qrToken === code ? { ...p, status: "used" } : p));
-        await idbPut("participants", participants.find((p) => p.qrToken === code));
+        const participants = state.participants.map((p) =>
+          p.qrToken === code ? { ...p, status: "used" } : p,
+        );
+        await idbPut(
+          "participants",
+          participants.find((p) => p.qrToken === code),
+        );
         set({ pending: [...state.pending, item], participants });
       }
       recordHistory(result, true);
@@ -326,7 +353,9 @@ export const gateActions = {
     const normalized = normalizeCheckinResponse(data);
     if (normalized.result === "ok") {
       const ticket = normalized.ticket;
-      const participants = state.participants.map((p) => (p.qrToken === code ? { ...p, status: "used" } : p));
+      const participants = state.participants.map((p) =>
+        p.qrToken === code ? { ...p, status: "used" } : p,
+      );
       set({ participants });
       const granted: ScanResult = ticket?.half
         ? { kind: "granted_check_doc", ticket }
@@ -335,9 +364,12 @@ export const gateActions = {
       return granted;
     }
     let out: ScanResult;
-    if (normalized.result === "already_used") out = { kind: "already_used", ticket: normalized.ticket, usedAt: normalized.usedAt };
-    else if (normalized.result === "canceled") out = { kind: "canceled", ticket: normalized.ticket };
-    else if (normalized.result === "other_event") out = { kind: "other_event", code, eventName: normalized.otherEventName };
+    if (normalized.result === "already_used")
+      out = { kind: "already_used", ticket: normalized.ticket, usedAt: normalized.usedAt };
+    else if (normalized.result === "canceled")
+      out = { kind: "canceled", ticket: normalized.ticket };
+    else if (normalized.result === "other_event")
+      out = { kind: "other_event", code, eventName: normalized.otherEventName };
     else out = { kind: "not_found", code };
     recordHistory(out, false);
     return out;

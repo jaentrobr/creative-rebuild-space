@@ -66,7 +66,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -99,20 +102,27 @@ function useServiceWorker() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isProducerPanel = pathname.startsWith("/produtor/") || pathname === "/produtor" || pathname.startsWith("/admin");
+  const isProducerPanel =
+    pathname.startsWith("/produtor/") || pathname === "/produtor" || pathname.startsWith("/admin");
   const isPortaria = pathname.startsWith("/portaria");
   useServiceWorker();
 
   let content: ReactNode;
   if (isProducerPanel) {
-    content = <div className="min-h-screen bg-background text-foreground"><Outlet /></div>;
+    content = (
+      <div className="min-h-screen bg-background text-foreground">
+        <Outlet />
+      </div>
+    );
   } else if (isPortaria) {
     content = <Outlet />;
   } else {
     content = (
       <div className="flex min-h-screen flex-col bg-background text-foreground">
         <SiteHeader />
-        <main className="flex-1"><Outlet /></main>
+        <main className="flex-1">
+          <Outlet />
+        </main>
         <SiteFooter />
         <CookieBar />
       </div>

@@ -13,7 +13,10 @@ export const Route = createFileRoute("/produtor/eventos/")({
   head: () => ({
     meta: [
       { title: "Meus eventos — Painel Entrô" },
-      { name: "description", content: "Gerencie rascunhos, eventos publicados e encerrados da sua produtora." },
+      {
+        name: "description",
+        content: "Gerencie rascunhos, eventos publicados e encerrados da sua produtora.",
+      },
       { property: "og:title", content: "Meus eventos — Painel Entrô" },
       { property: "og:description", content: "Veja vendas, receita e status de cada evento." },
       { property: "og:type", content: "website" },
@@ -23,7 +26,13 @@ export const Route = createFileRoute("/produtor/eventos/")({
   component: ProducerEvents,
 });
 
-const statuses: (EventStatus | "Todos")[] = ["Todos", "Rascunho", "Publicado", "Encerrado", "Cancelado"];
+const statuses: (EventStatus | "Todos")[] = [
+  "Todos",
+  "Rascunho",
+  "Publicado",
+  "Encerrado",
+  "Cancelado",
+];
 
 function ProducerEvents() {
   const { events } = useProducer();
@@ -40,7 +49,13 @@ function ProducerEvents() {
     <ProducerLayout
       title="Meus eventos"
       description="Todos os eventos da sua produtora."
-      actions={<Button asChild><Link to="/produtor/eventos/novo" search={{ editar: "" }}><Plus className="size-4" /> Criar evento</Link></Button>}
+      actions={
+        <Button asChild>
+          <Link to="/produtor/eventos/novo" search={{ editar: "" }}>
+            <Plus className="size-4" /> Criar evento
+          </Link>
+        </Button>
+      }
     >
       <div className="mb-5 flex flex-wrap gap-2">
         {statuses.map((status) => (
@@ -60,38 +75,67 @@ function ProducerEvents() {
       {loading ? (
         <PanelListSkeleton />
       ) : (
-      <div className="grid gap-4 md:grid-cols-2">
-        {list.map((event) => {
-          const sold = eventSold(event.id);
-          const capacity = eventCapacity(event.id);
-          return (
-            <PanelCard key={event.id} className="p-0">
-              <img src={event.image} alt={event.name} className="h-36 w-full rounded-t-2xl object-cover" />
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h2 className="font-display text-lg font-extrabold">{event.name}</h2>
-                    <p className="text-xs text-muted-foreground">{shortDateTime(event.startAt)}</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          {list.map((event) => {
+            const sold = eventSold(event.id);
+            const capacity = eventCapacity(event.id);
+            return (
+              <PanelCard key={event.id} className="p-0">
+                <img
+                  src={event.image}
+                  alt={event.name}
+                  className="h-36 w-full rounded-t-2xl object-cover"
+                />
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h2 className="font-display text-lg font-extrabold">{event.name}</h2>
+                      <p className="text-xs text-muted-foreground">
+                        {shortDateTime(event.startAt)}
+                      </p>
+                    </div>
+                    <StatusPill status={event.status} />
                   </div>
-                  <StatusPill status={event.status} />
+                  <div className="mt-3 flex gap-6 text-sm">
+                    <p>
+                      <span className="font-bold">{sold}</span>
+                      <span className="text-muted-foreground">/{capacity} vendidos</span>
+                    </p>
+                    <p className="font-bold">{brl(eventRevenue(event.id))}</p>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button size="sm" asChild>
+                      <Link to="/produtor/eventos/$id" params={{ id: event.id }}>
+                        <Settings2 className="size-4" /> Gerenciar
+                      </Link>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to="/produtor/eventos/novo" search={{ editar: event.id }}>
+                        <Pencil className="size-4" /> Editar
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => producerActions.duplicateEvent(event.id)}
+                    >
+                      <Copy className="size-4" /> Duplicar
+                    </Button>
+                    <Button size="sm" variant="ghost" asChild>
+                      <Link to="/evento/$slug" params={{ slug: event.slug }} search={{ ref: "" }}>
+                        <ExternalLink className="size-4" /> Ver página
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-                <div className="mt-3 flex gap-6 text-sm">
-                  <p><span className="font-bold">{sold}</span><span className="text-muted-foreground">/{capacity} vendidos</span></p>
-                  <p className="font-bold">{brl(eventRevenue(event.id))}</p>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button size="sm" asChild><Link to="/produtor/eventos/$id" params={{ id: event.id }}><Settings2 className="size-4" /> Gerenciar</Link></Button>
-                  <Button size="sm" variant="outline" asChild><Link to="/produtor/eventos/novo" search={{ editar: event.id }}><Pencil className="size-4" /> Editar</Link></Button>
-                  <Button size="sm" variant="outline" onClick={() => producerActions.duplicateEvent(event.id)}><Copy className="size-4" /> Duplicar</Button>
-                  <Button size="sm" variant="ghost" asChild><Link to="/evento/$slug" params={{ slug: event.slug }} search={{ ref: "" }}><ExternalLink className="size-4" /> Ver página</Link></Button>
-                </div>
-              </div>
-            </PanelCard>
-          );
-        })}
-      </div>
+              </PanelCard>
+            );
+          })}
+        </div>
       )}
-      {!loading && list.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum evento com esse status.</p> : null}
+      {!loading && list.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum evento com esse status.</p>
+      ) : null}
     </ProducerLayout>
   );
 }

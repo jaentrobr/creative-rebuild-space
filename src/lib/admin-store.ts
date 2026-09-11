@@ -79,7 +79,9 @@ export async function logAudit(params: {
 }
 
 /** Busca profiles por id em lote (evita N+1). Usado onde não há foreign key declarada para join automático. */
-export async function fetchProfilesMap(ids: (string | null | undefined)[]): Promise<Record<string, import("@/integrations/meu-supabase/types").Tables<"profiles">>> {
+export async function fetchProfilesMap(
+  ids: (string | null | undefined)[],
+): Promise<Record<string, import("@/integrations/meu-supabase/types").Tables<"profiles">>> {
   const unique = Array.from(new Set(ids.filter((id): id is string => !!id)));
   if (unique.length === 0) return {};
   const { data, error } = await db.from("profiles").select("*").in("id", unique);
@@ -91,7 +93,9 @@ export async function fetchProfilesMap(ids: (string | null | undefined)[]): Prom
 
 /** Baixa um CSV simples no navegador a partir de linhas de dados reais (sem serviço externo). */
 export function csvDownload(filename: string, rows: (string | number)[][]) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const csv = rows
+    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

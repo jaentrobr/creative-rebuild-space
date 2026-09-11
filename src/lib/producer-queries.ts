@@ -39,7 +39,12 @@ export function useUpdateProducer(producerId: string | undefined) {
   return useMutation({
     mutationFn: async (patch: TablesUpdate<"producers">) => {
       if (!producerId) throw new Error("Produtora não encontrada.");
-      const { data, error } = await db.from("producers").update(patch).eq("id", producerId).select().single();
+      const { data, error } = await db
+        .from("producers")
+        .update(patch)
+        .eq("id", producerId)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -52,7 +57,9 @@ export function useUpdateProducer(producerId: string | undefined) {
 
 /** Upload de arquivo em bucket do Storage. Se o bucket não existir no projeto, o erro é repassado com mensagem clara. */
 async function uploadToBucket(bucket: string, path: string, file: File) {
-  const { error } = await db.storage.from(bucket).upload(path, file, { upsert: true, cacheControl: "3600" });
+  const { error } = await db.storage
+    .from(bucket)
+    .upload(path, file, { upsert: true, cacheControl: "3600" });
   if (error) {
     throw new Error(
       /bucket/i.test(error.message)
@@ -106,7 +113,11 @@ export function useEvent(eventId: string | undefined) {
   return useQuery({
     queryKey: ["producer-event", eventId],
     queryFn: async () => {
-      const { data, error } = await db.from("events").select("*").eq("id", eventId as string).maybeSingle();
+      const { data, error } = await db
+        .from("events")
+        .select("*")
+        .eq("id", eventId as string)
+        .maybeSingle();
       if (error) throw error;
       return data as EventRow | null;
     },
@@ -131,12 +142,14 @@ export function useEventTicketTypes(eventId: string | undefined) {
 }
 
 function slugify(title: string) {
-  return title
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "evento";
+  return (
+    title
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "evento"
+  );
 }
 
 /** Gera um slug único checando colisões na tabela events. */
@@ -157,7 +170,9 @@ async function generateUniqueSlug(title: string, ignoreEventId?: string) {
 export function useCreateEvent(producerId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<TablesInsert<"events">, "producer_id" | "slug"> & { title: string }) => {
+    mutationFn: async (
+      input: Omit<TablesInsert<"events">, "producer_id" | "slug"> & { title: string },
+    ) => {
       if (!producerId) throw new Error("Produtora não encontrada.");
       const slug = await generateUniqueSlug(input.title);
       const { data, error } = await db
@@ -181,8 +196,14 @@ export function useUpdateEvent(eventId: string | undefined, producerId: string |
       if (!eventId) throw new Error("Evento não encontrado.");
       const { regenerateSlugFrom, ...rest } = patch;
       const finalPatch: TablesUpdate<"events"> = { ...rest };
-      if (regenerateSlugFrom) finalPatch.slug = await generateUniqueSlug(regenerateSlugFrom, eventId);
-      const { data, error } = await db.from("events").update(finalPatch).eq("id", eventId).select().single();
+      if (regenerateSlugFrom)
+        finalPatch.slug = await generateUniqueSlug(regenerateSlugFrom, eventId);
+      const { data, error } = await db
+        .from("events")
+        .update(finalPatch)
+        .eq("id", eventId)
+        .select()
+        .single();
       if (error) throw error;
       return data as EventRow;
     },
@@ -195,12 +216,17 @@ export function useUpdateEvent(eventId: string | undefined, producerId: string |
 
 export function useTicketTypeMutations(eventId: string | undefined) {
   const queryClient = useQueryClient();
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["producer-event-ticket-types", eventId] });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["producer-event-ticket-types", eventId] });
 
   const createTicketType = useMutation({
     mutationFn: async (input: Omit<TablesInsert<"ticket_types">, "event_id">) => {
       if (!eventId) throw new Error("Salve as informações do evento antes de criar ingressos.");
-      const { data, error } = await db.from("ticket_types").insert({ ...input, event_id: eventId }).select().single();
+      const { data, error } = await db
+        .from("ticket_types")
+        .insert({ ...input, event_id: eventId })
+        .select()
+        .single();
       if (error) throw error;
       return data as TicketTypeRow;
     },
@@ -209,7 +235,12 @@ export function useTicketTypeMutations(eventId: string | undefined) {
 
   const updateTicketType = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: TablesUpdate<"ticket_types"> }) => {
-      const { data, error } = await db.from("ticket_types").update(patch).eq("id", id).select().single();
+      const { data, error } = await db
+        .from("ticket_types")
+        .update(patch)
+        .eq("id", id)
+        .select()
+        .single();
       if (error) throw error;
       return data as TicketTypeRow;
     },
@@ -259,7 +290,11 @@ export function usePlatformSettings() {
   return useQuery({
     queryKey: ["platform-settings"],
     queryFn: async () => {
-      const { data, error } = await db.from("platform_settings").select("*").eq("id", 1).maybeSingle();
+      const { data, error } = await db
+        .from("platform_settings")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
       if (error) throw error;
       return data as PlatformSettingsRow | null;
     },
@@ -366,11 +401,16 @@ export function useCoupons(eventId: string | undefined) {
 
 export function useCouponMutations(eventId: string | undefined) {
   const queryClient = useQueryClient();
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["producer-coupons", eventId] });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["producer-coupons", eventId] });
   const create = useMutation({
     mutationFn: async (input: Omit<TablesInsert<"coupons">, "event_id">) => {
       if (!eventId) throw new Error("Evento não encontrado.");
-      const { data, error } = await db.from("coupons").insert({ ...input, event_id: eventId }).select().single();
+      const { data, error } = await db
+        .from("coupons")
+        .insert({ ...input, event_id: eventId })
+        .select()
+        .single();
       if (error) throw error;
       return data as CouponRow;
     },
@@ -404,11 +444,16 @@ export function usePromoters(eventId: string | undefined) {
 
 export function usePromoterMutations(eventId: string | undefined) {
   const queryClient = useQueryClient();
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["producer-promoters", eventId] });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["producer-promoters", eventId] });
   const create = useMutation({
     mutationFn: async (input: Omit<TablesInsert<"promoters">, "event_id">) => {
       if (!eventId) throw new Error("Evento não encontrado.");
-      const { data, error } = await db.from("promoters").insert({ ...input, event_id: eventId }).select().single();
+      const { data, error } = await db
+        .from("promoters")
+        .insert({ ...input, event_id: eventId })
+        .select()
+        .single();
       if (error) throw error;
       return data as PromoterRow;
     },
@@ -416,7 +461,10 @@ export function usePromoterMutations(eventId: string | undefined) {
   });
   const markCommissionPaid = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from("promoters").update({ commission_paid_at: new Date().toISOString() }).eq("id", id);
+      const { error } = await db
+        .from("promoters")
+        .update({ commission_paid_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -445,7 +493,9 @@ export function useEventParticipants(eventId: string | undefined) {
   return useQuery({
     queryKey: ["producer-event-participants", eventId],
     queryFn: async () => {
-      const { data, error } = await db.rpc("get_event_participants", { p_event_id: eventId as string });
+      const { data, error } = await db.rpc("get_event_participants", {
+        p_event_id: eventId as string,
+      });
       if (error) throw error;
       return (Array.isArray(data) ? data : []) as Record<string, unknown>[];
     },
@@ -492,7 +542,11 @@ export function useProducerRefunds(eventIds: string[]) {
     queryKey: ["producer-refunds", eventIds],
     queryFn: async () => {
       if (eventIds.length === 0) return [] as RefundRow[];
-      const { data, error } = await db.from("refunds").select("*").in("event_id", eventIds).order("created_at", { ascending: false });
+      const { data, error } = await db
+        .from("refunds")
+        .select("*")
+        .in("event_id", eventIds)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data as RefundRow[];
     },

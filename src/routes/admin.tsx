@@ -4,10 +4,7 @@ import { ADMIN_ROLES } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
-    meta: [
-      { title: "Admin — Entrô" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
+    meta: [{ title: "Admin — Entrô" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: AdminGate,
 });

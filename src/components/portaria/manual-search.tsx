@@ -22,7 +22,11 @@ export function ManualSearch({ onResult }: { onResult: (result: ScanResult) => v
     return participants
       .filter((p) => {
         const digits = (p.document ?? "").replace(/\D/g, "");
-        return p.name.toLowerCase().includes(q) || digits.slice(-3) === q || p.qrToken.toLowerCase().includes(q);
+        return (
+          p.name.toLowerCase().includes(q) ||
+          digits.slice(-3) === q ||
+          p.qrToken.toLowerCase().includes(q)
+        );
       })
       .slice(0, 20);
   }, [query, participants]);

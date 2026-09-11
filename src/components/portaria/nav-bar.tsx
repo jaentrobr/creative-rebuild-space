@@ -9,7 +9,13 @@ const items: { key: PortariaScreen; label: string; icon: typeof QrCode }[] = [
   { key: "history", label: "Histórico", icon: History },
 ];
 
-export function NavBar({ screen, onChange }: { screen: PortariaScreen; onChange: (s: PortariaScreen) => void }) {
+export function NavBar({
+  screen,
+  onChange,
+}: {
+  screen: PortariaScreen;
+  onChange: (s: PortariaScreen) => void;
+}) {
   return (
     <nav className="grid grid-cols-4 border-t border-white/10 bg-[#150C22]">
       {items.map(({ key, label, icon: Icon }) => (

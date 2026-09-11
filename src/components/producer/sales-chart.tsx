@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { brl } from "@/lib/format";
 
 export function SalesChart({ data }: { data: { label: string; value: number }[] }) {
@@ -18,10 +26,32 @@ export function SalesChart({ data }: { data: { label: string; value: number }[] 
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(data.length / 6))} fontSize={11} />
-          <YAxis tickLine={false} axisLine={false} width={54} fontSize={11} tickFormatter={(v: number) => `R$${Math.round(v / 100) / 10}k`} />
-          <Tooltip formatter={(value) => [brl(Number(value)), "Vendas"]} labelClassName="font-bold" contentStyle={{ borderRadius: 12, border: "2px solid var(--color-foreground)" }} />
-          <Area type="monotone" dataKey="value" stroke="var(--color-primary)" strokeWidth={2.5} fill="url(#salesFill)" />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            interval={Math.max(0, Math.floor(data.length / 6))}
+            fontSize={11}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            width={54}
+            fontSize={11}
+            tickFormatter={(v: number) => `R$${Math.round(v / 100) / 10}k`}
+          />
+          <Tooltip
+            formatter={(value) => [brl(Number(value)), "Vendas"]}
+            labelClassName="font-bold"
+            contentStyle={{ borderRadius: 12, border: "2px solid var(--color-foreground)" }}
+          />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke="var(--color-primary)"
+            strokeWidth={2.5}
+            fill="url(#salesFill)"
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>

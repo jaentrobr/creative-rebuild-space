@@ -38,7 +38,9 @@ export function RequireAuth({ children, roles, redirectTo = "/entrar" }: Props) 
     return (
       <div className="mx-auto w-full max-w-lg px-4 py-20 text-center">
         <h1 className="font-display text-2xl font-bold">Acesso restrito</h1>
-        <p className="mt-2 text-muted-foreground">Sua conta não tem permissão para ver esta área.</p>
+        <p className="mt-2 text-muted-foreground">
+          Sua conta não tem permissão para ver esta área.
+        </p>
       </div>
     );
   }

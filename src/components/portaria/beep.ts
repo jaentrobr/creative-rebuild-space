@@ -28,6 +28,8 @@ export function playBeep(kind: "granted" | "warning" | "denied") {
     } else {
       tone(220, 0.28);
     }
-    navigator.vibrate?.(kind === "granted" ? 80 : kind === "warning" ? [60, 60, 60] : [200, 80, 200]);
+    navigator.vibrate?.(
+      kind === "granted" ? 80 : kind === "warning" ? [60, 60, 60] : [200, 80, 200],
+    );
   } catch {}
 }

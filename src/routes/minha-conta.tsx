@@ -32,8 +32,10 @@ export const Route = createFileRoute("/minha-conta")({
 
 function mapAuthError(message: string): string {
   const normalized = message.toLowerCase();
-  if (normalized.includes("should be different")) return "A nova senha deve ser diferente da atual.";
-  if (normalized.includes("password")) return "A senha não atende aos requisitos mínimos (mínimo 6 caracteres).";
+  if (normalized.includes("should be different"))
+    return "A nova senha deve ser diferente da atual.";
+  if (normalized.includes("password"))
+    return "A senha não atende aos requisitos mínimos (mínimo 6 caracteres).";
   return "Não foi possível concluir. Tente novamente em instantes.";
 }
 
@@ -118,31 +120,64 @@ function AccountPage() {
   return (
     <PageShell className="max-w-2xl">
       <h1 className="text-4xl font-bold sm:text-5xl">Minha conta</h1>
-      {saved && <p className="mt-5 flex items-center gap-2 rounded-xl bg-secondary p-4 font-bold"><Check className="text-primary" /> {saved}</p>}
+      {saved && (
+        <p className="mt-5 flex items-center gap-2 rounded-xl bg-secondary p-4 font-bold">
+          <Check className="text-primary" /> {saved}
+        </p>
+      )}
 
       <form onSubmit={saveProfile} className="mt-7 grid gap-4 rounded-xl border border-border p-5">
         <h2 className="text-2xl font-bold">Dados pessoais</h2>
-        <label className="grid gap-1 text-sm font-semibold">Nome<Input value={name} onChange={(e) => setName(e.target.value)} required /></label>
         <label className="grid gap-1 text-sm font-semibold">
-          CPF<Input value={profile?.cpf ? maskCpf(profile.cpf) : "Não informado"} disabled readOnly />
-          <span className="text-xs font-normal text-muted-foreground">O CPF não pode ser alterado.</span>
+          Nome
+          <Input value={name} onChange={(e) => setName(e.target.value)} required />
         </label>
         <label className="grid gap-1 text-sm font-semibold">
-          E-mail<Input type="email" value={user?.email ?? ""} disabled readOnly />
-          <span className="text-xs font-normal text-muted-foreground">A troca de e-mail ainda não está disponível.</span>
+          CPF
+          <Input value={profile?.cpf ? maskCpf(profile.cpf) : "Não informado"} disabled readOnly />
+          <span className="text-xs font-normal text-muted-foreground">
+            O CPF não pode ser alterado.
+          </span>
         </label>
-        
+        <label className="grid gap-1 text-sm font-semibold">
+          E-mail
+          <Input type="email" value={user?.email ?? ""} disabled readOnly />
+          <span className="text-xs font-normal text-muted-foreground">
+            A troca de e-mail ainda não está disponível.
+          </span>
+        </label>
+
         <Button type="submit" className="justify-self-start" disabled={savingProfile}>
           {savingProfile ? <Loader2 className="size-4 animate-spin" /> : "Salvar dados"}
         </Button>
       </form>
 
-      <form onSubmit={changePassword} className="mt-5 grid gap-4 rounded-xl border border-border p-5">
+      <form
+        onSubmit={changePassword}
+        className="mt-5 grid gap-4 rounded-xl border border-border p-5"
+      >
         <h2 className="text-2xl font-bold">Alterar senha</h2>
-        <Input type="password" placeholder="Nova senha" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-        <Input type="password" placeholder="Confirmar nova senha" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+        <Input
+          type="password"
+          placeholder="Nova senha"
+          required
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+        <Input
+          type="password"
+          placeholder="Confirmar nova senha"
+          required
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
         {passwordError && <p className="text-sm font-semibold text-destructive">{passwordError}</p>}
-        <Button type="submit" variant="outline" className="justify-self-start" disabled={savingPassword}>
+        <Button
+          type="submit"
+          variant="outline"
+          className="justify-self-start"
+          disabled={savingPassword}
+        >
           {savingPassword ? <Loader2 className="size-4 animate-spin" /> : "Alterar senha"}
         </Button>
       </form>
@@ -156,7 +191,9 @@ function AccountPage() {
       </div>
 
       <div className="mt-5 rounded-xl border border-border p-5">
-        <Button type="button" variant="ghost" onClick={handleSignOut}>Sair da conta</Button>
+        <Button type="button" variant="ghost" onClick={handleSignOut}>
+          Sair da conta
+        </Button>
       </div>
     </PageShell>
   );

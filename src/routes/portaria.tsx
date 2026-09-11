@@ -16,7 +16,10 @@ export const Route = createFileRoute("/portaria")({
   head: () => ({
     meta: [
       { title: "Portaria | Entrô" },
-      { name: "description", content: "Leitor de QR Code e controle de entrada para a equipe de portaria da Entrô." },
+      {
+        name: "description",
+        content: "Leitor de QR Code e controle de entrada para a equipe de portaria da Entrô.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -64,7 +67,9 @@ function PortariaPage() {
         {screen === "history" && <HistoryScreen />}
       </div>
 
-      {manualResult && <ResultOverlay result={manualResult} onClose={() => setManualResult(null)} />}
+      {manualResult && (
+        <ResultOverlay result={manualResult} onClose={() => setManualResult(null)} />
+      )}
 
       {gate.logoutBlocked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
