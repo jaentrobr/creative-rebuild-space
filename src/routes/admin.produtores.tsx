@@ -184,6 +184,7 @@ function ProducerDetail({ producerId, onBack }: { producerId: string; onBack: ()
           <p>Tipo: <span className="font-semibold">{producer.producer_private?.person_type ?? "—"}</span></p>
           <p>Responsável: <span className="font-semibold">{producer.producer_private?.responsible_name ?? "—"}</span></p>
           <p>WhatsApp: <span className="font-semibold">{producer.whatsapp ?? "—"}</span></p>
+          <p>Celular para contato: <span className="font-semibold">{producer.producer_private?.contact_phone ?? "—"}</span></p>
           <p>Instagram: <span className="font-semibold">{producer.instagram ?? "—"}</span></p>
           <p>Cadastro: <span className="font-semibold">{shortDate(producer.created_at)}</span></p>
         </div>
