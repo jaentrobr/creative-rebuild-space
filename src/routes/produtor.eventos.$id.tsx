@@ -274,7 +274,9 @@ function Overview({ eventId, sold, capacity, people, types, realEvent, reschedul
   );
 }
 
-function Participants({ eventId, eventName, types }: { eventId: string; eventName: string; types: TypeList }) {
+const CHOICE_LABELS: Record<string, string> = { keep: "Manteve", refund: "Reembolso" };
+
+function Participants({ eventId, eventName, types, rescheduleCount, realEventId }: { eventId: string; eventName: string; types: TypeList; rescheduleCount: number; realEventId: string | null }) {
   const store = useProducer();
   const all = store.participants.filter((p) => p.eventId === eventId);
   const [term, setTerm] = useState("");
@@ -282,6 +284,20 @@ function Participants({ eventId, eventName, types }: { eventId: string; eventNam
   const [status, setStatus] = useState("todos");
   const [half, setHalf] = useState("todos");
   const [checkin, setCheckin] = useState("todos");
+  const [choiceFilter, setChoiceFilter] = useState("todos");
+
+  const showChoice = rescheduleCount >= 1;
+  const { data: choiceRows } = useQuery({
+    queryKey: ["event-reschedule-choices", realEventId],
+    queryFn: async () => {
+      const { data, error } = await db.from("ticket_reschedule_choices").select("ticket_id, choice").eq("event_id", realEventId as string);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: showChoice && !!realEventId,
+  });
+  const choiceByTicket = new Map((choiceRows ?? []).map((row) => [row.ticket_id, row.choice]));
+  const choiceOf = (ticketId: string) => choiceByTicket.get(ticketId) ?? "pending";
 
   const list = all.filter((p) => {
     const text = `${p.name} ${p.cpf} ${p.email}`.toLowerCase();
@@ -290,7 +306,8 @@ function Participants({ eventId, eventName, types }: { eventId: string; eventNam
       (type === "todos" || p.type === type) &&
       (status === "todos" || p.status === status) &&
       (half === "todos" || (half === "sim") === p.half) &&
-      (checkin === "todos" || (checkin === "feito") === p.checkedIn)
+      (checkin === "todos" || (checkin === "feito") === p.checkedIn) &&
+      (!showChoice || choiceFilter === "todos" || choiceOf(p.id) === choiceFilter)
     );
   });
 
