@@ -20,3 +20,5 @@ service_role nunca no front; papéis sempre de `user_roles`; checkout pago fica 
 - [ ] 6. Edge Functions `create-staff-user` e `issue-tickets` (deploy manual no Supabase do usuário;
       secrets RESEND_API_KEY e SITE_URL) — bloqueado: exige deploy pelo usuário
 - [ ] 7. Checkout pago via Asaas — fora de escopo por decisão do projeto
+
+- [ ] Corrigir todos os erros de typecheck/build antes de finalizar

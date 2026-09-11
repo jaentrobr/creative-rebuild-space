@@ -4,7 +4,13 @@ import type { PublicEvent } from "@/lib/queries";
 import { eventDay, eventMonth, eventImage, eventPrice, eventWeekday } from "@/data/events";
 import { brl } from "@/lib/format";
 
-const linkProps = (event: PublicEvent) => ({ to: "/evento/$slug" as const, params: { slug: event.slug }, search: { promo: "" } });
+function EventLink({ event, className, children }: { event: PublicEvent; className: string; children: React.ReactNode }) {
+  return (
+    <Link to="/evento/$slug" params={{ slug: event.slug }} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 function PriceLabel({ event }: { event: PublicEvent }) {
   const price = eventPrice(event);
@@ -14,7 +20,7 @@ function PriceLabel({ event }: { event: PublicEvent }) {
 
 export function EventCard({ event }: { event: PublicEvent }) {
   return (
-    <Link {...linkProps(event)} className="group block overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-transform hover:-translate-y-1">
+    <EventLink event={event} className="group block overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-transform hover:-translate-y-1">
       <div className="aspect-[3/2] overflow-hidden">
         <img src={eventImage(event)} alt={`Público do evento ${event.title}`} loading="lazy" width={1200} height={800} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
       </div>
@@ -31,13 +37,13 @@ export function EventCard({ event }: { event: PublicEvent }) {
           <p className="mt-3 text-sm font-bold"><PriceLabel event={event} /></p>
         </div>
       </div>
-    </Link>
+    </EventLink>
   );
 }
 
 export function EventCardCompact({ event }: { event: PublicEvent }) {
   return (
-    <Link {...linkProps(event)} className="group block w-[82vw] max-w-[340px] shrink-0 snap-start sm:w-[280px] md:w-[320px]">
+    <EventLink event={event} className="group block w-[82vw] max-w-[340px] shrink-0 snap-start sm:w-[280px] md:w-[320px]">
       <div className="relative aspect-[3/2] overflow-hidden rounded-xl border-2 border-ink shadow-pop">
         <img src={eventImage(event)} alt={`Público do evento ${event.title}`} loading="lazy" width={900} height={600} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
         <span className="absolute left-3 top-3 grid rounded-xl border-2 border-ink bg-background px-2.5 py-1 text-center leading-none shadow-pop">
@@ -48,13 +54,13 @@ export function EventCardCompact({ event }: { event: PublicEvent }) {
       <h3 className="mt-3 line-clamp-2 text-[18px] font-bold leading-tight group-hover:text-primary">{event.title}</h3>
       <p className="mt-1 truncate text-sm font-semibold text-muted-foreground">{eventWeekday(event)}, {eventDay(event)} {eventMonth(event)}</p>
       <p className="mt-1 text-base font-extrabold text-primary"><PriceLabel event={event} /></p>
-    </Link>
+    </EventLink>
   );
 }
 
 export function EventCardRow({ event }: { event: PublicEvent }) {
   return (
-    <Link {...linkProps(event)} className="flex gap-4 rounded-xl border border-border bg-card p-3">
+    <EventLink event={event} className="flex gap-4 rounded-xl border border-border bg-card p-3">
       <div className="relative h-[110px] w-[110px] shrink-0 overflow-hidden rounded-lg">
         <img src={eventImage(event)} alt={`Público do evento ${event.title}`} loading="lazy" width={400} height={400} className="h-full w-full object-cover" />
       </div>
@@ -64,6 +70,6 @@ export function EventCardRow({ event }: { event: PublicEvent }) {
         <p className="mt-1 truncate text-sm text-muted-foreground">{event.venue_name ?? "Local a definir"} · {event.city ?? ""}</p>
         <p className="mt-2 text-base font-extrabold text-primary"><PriceLabel event={event} /></p>
       </div>
-    </Link>
+    </EventLink>
   );
 }

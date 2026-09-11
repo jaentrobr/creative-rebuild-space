@@ -124,7 +124,7 @@ export function useEventTicketTypes(eventId: string | undefined) {
         .eq("event_id", eventId as string)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return data as (TicketTypeRow & { lots: LotRow[] })[];
+      return data as unknown as (TicketTypeRow & { lots: LotRow[] })[];
     },
     enabled: !!eventId,
   });

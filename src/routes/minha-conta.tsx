@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/integrations/meu-supabase/client";
+import type { TablesInsert } from "@/integrations/meu-supabase/types";
 import { maskCpf, maskPhone } from "@/lib/format";
 
 export const Route = createFileRoute("/minha-conta")({
@@ -62,9 +63,12 @@ function AccountPage() {
     event.preventDefault();
     if (!user) return;
     setSavingProfile(true);
-    const { error } = await db
-      .from("profiles")
-      .upsert({ id: user.id, full_name: name, phone: phone.replace(/\D/g, "") || null });
+    const payload: TablesInsert<"profiles"> = {
+      id: user.id,
+      full_name: name,
+      phone: phone.replace(/\D/g, "") || null,
+    };
+    const { error } = await db.from("profiles").upsert(payload);
     setSavingProfile(false);
     if (error) {
       toast.error("Não foi possível salvar seus dados. Tente novamente.");
@@ -103,7 +107,11 @@ function AccountPage() {
     if (!user) return;
     if (field === "notify_email") setEmailNotif(value);
     else setSmsNotif(value);
-    const { error } = await db.from("profiles").upsert({ id: user.id, [field]: value });
+    const payload: TablesInsert<"profiles"> =
+      field === "notify_email"
+        ? { id: user.id, notify_email: value }
+        : { id: user.id, notify_sms: value };
+    const { error } = await db.from("profiles").upsert(payload);
     if (error) {
       toast.error("Não foi possível salvar sua preferência.");
       return;

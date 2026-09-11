@@ -6,10 +6,18 @@ import { normalizeCheckinResponse, normalizeParticipants, type DisplayTicket } f
 export type ScanResult =
   | { kind: "granted"; ticket: DisplayTicket; offline?: boolean }
   | { kind: "granted_check_doc"; ticket: DisplayTicket; offline?: boolean }
-  | { kind: "already_used"; ticket?: DisplayTicket; usedAt?: string | null }
-  | { kind: "canceled"; ticket?: DisplayTicket }
+  | { kind: "already_used"; ticket?: DisplayTicket | undefined; usedAt?: string | null | undefined }
+  | { kind: "canceled"; ticket?: DisplayTicket | undefined }
   | { kind: "not_found"; code: string }
-  | { kind: "other_event"; code: string; eventName?: string | null };
+  | { kind: "other_event"; code: string; eventName?: string | null | undefined };
+
+export type HistoryEntry = {
+  id: string;
+  at: string;
+  kind: ScanResult["kind"];
+  label: string;
+  offline: boolean;
+};
 
 export type StaffEvent = { eventId: string; eventTitle: string; displayName: string };
 
@@ -30,6 +38,7 @@ type GateState = {
   pending: PendingCheckin[];
   loginError: string;
   logoutBlocked: string;
+  history: HistoryEntry[];
 };
 
 let state: GateState = {
@@ -47,6 +56,7 @@ let state: GateState = {
   pending: [],
   loginError: "",
   logoutBlocked: "",
+  history: [],
 };
 
 const listeners = new Set<() => void>();
@@ -146,6 +156,18 @@ function classifyLocally(qrToken: string): ScanResult {
     return { kind: "canceled", ticket: participant };
   }
   return participant.half ? { kind: "granted_check_doc", ticket: participant, offline: true } : { kind: "granted", ticket: participant, offline: true };
+}
+
+function recordHistory(result: ScanResult, offline: boolean) {
+  const label = "ticket" in result && result.ticket ? result.ticket.name : "code" in result ? result.code : "Ingresso";
+  const entry: HistoryEntry = {
+    id: crypto.randomUUID(),
+    at: new Date().toISOString(),
+    kind: result.kind,
+    label,
+    offline,
+  };
+  set({ history: [entry, ...state.history].slice(0, 200) });
 }
 
 export const gateActions = {
@@ -285,6 +307,7 @@ export const gateActions = {
         await idbPut("participants", participants.find((p) => p.qrToken === code));
         set({ pending: [...state.pending, item], participants });
       }
+      recordHistory(result, true);
       return result;
     }
 
@@ -295,20 +318,35 @@ export const gateActions = {
       p_device_id: deviceId(),
       p_was_offline: false,
     });
-    if (error) return { kind: "not_found", code };
+    if (error) {
+      const notFound: ScanResult = { kind: "not_found", code };
+      recordHistory(notFound, false);
+      return notFound;
+    }
     const normalized = normalizeCheckinResponse(data);
     if (normalized.result === "ok") {
       const ticket = normalized.ticket;
       const participants = state.participants.map((p) => (p.qrToken === code ? { ...p, status: "used" } : p));
       set({ participants });
-      return ticket?.half ? { kind: "granted_check_doc", ticket } : { kind: "granted", ticket: ticket! };
+      const granted: ScanResult = ticket?.half
+        ? { kind: "granted_check_doc", ticket }
+        : { kind: "granted", ticket: ticket! };
+      recordHistory(granted, false);
+      return granted;
     }
-    if (normalized.result === "already_used") return { kind: "already_used", ticket: normalized.ticket, usedAt: normalized.usedAt };
-    if (normalized.result === "canceled") return { kind: "canceled", ticket: normalized.ticket };
-    if (normalized.result === "other_event") return { kind: "other_event", code, eventName: normalized.otherEventName };
-    return { kind: "not_found", code };
+    let out: ScanResult;
+    if (normalized.result === "already_used") out = { kind: "already_used", ticket: normalized.ticket, usedAt: normalized.usedAt };
+    else if (normalized.result === "canceled") out = { kind: "canceled", ticket: normalized.ticket };
+    else if (normalized.result === "other_event") out = { kind: "other_event", code, eventName: normalized.otherEventName };
+    else out = { kind: "not_found", code };
+    recordHistory(out, false);
+    return out;
   },
 };
+
+export function getParticipants(): DisplayTicket[] {
+  return state.participants;
+}
 
 export function getGateEvent(): StaffEvent | null {
   return state.staffEvents.find((e) => e.eventId === state.selectedEventId) ?? null;
