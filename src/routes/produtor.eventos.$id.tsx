@@ -162,7 +162,30 @@ function ManageEvent() {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
+              {canReschedule ? (
+                alreadyRescheduled ? (
+                  <Button variant="outline" disabled title={`Data já alterada em ${realEvent?.rescheduled_at ? shortDateTime(realEvent.rescheduled_at) : ""}`}>
+                    <CalendarClock className="size-4" /> Data já alterada
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => setRescheduleOpen(true)}>
+                    <CalendarClock className="size-4" /> Alterar data
+                  </Button>
+                )
+              ) : null}
             </div>
+            {canReschedule && alreadyRescheduled && realEvent?.rescheduled_at ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Data já alterada em {shortDateTime(realEvent.rescheduled_at)}. Se o evento não puder acontecer na nova data, será necessário cancelar.
+              </p>
+            ) : null}
+            {canReschedule && !alreadyRescheduled ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {soldCount > 0
+                  ? `Com vendas confirmadas (${soldCount} ingressos), a data só pode ser alterada 1 vez, até ${deadline ? shortDateTime(deadline.toISOString()) : "—"}.`
+                  : "Sem ingressos vendidos: você pode alterar a data livremente."}
+              </p>
+            ) : null}
             {advanced ? (
               <p className="mt-3 rounded-xl bg-sun p-3 text-sm font-bold text-ink">
                 Você já recebeu {brl(advanced.amount)} deste evento de forma antecipada ({advanced.kind.toLowerCase()} em {shortDate(advanced.at)}).
@@ -170,6 +193,15 @@ function ManageEvent() {
               </p>
             ) : null}
           </PanelCard>
+          {realEvent ? (
+            <RescheduleDialog
+              open={rescheduleOpen}
+              onOpenChange={setRescheduleOpen}
+              event={realEvent}
+              lots={lotsReal}
+              producerId={producer?.id}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="participantes" className="mt-4"><Participants eventId={event.id} eventName={event.name} types={types} /></TabsContent>
