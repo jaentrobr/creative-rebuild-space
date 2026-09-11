@@ -10,7 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useSession } from "@/lib/session";
 import { eventsSearch } from "@/lib/events-search";
 import { fetchPublishedEvents, fetchPlatformSettings, type PublicEvent } from "@/lib/queries";
-import heroDesktop from "@/assets/entro-hero-desktop-v2.png.asset.json";
+import heroDesktop from "@/assets/entro-hero-desktop-v3.png.asset.json";
 import heroMobile from "@/assets/entro-hero-mobile-v2.png.asset.json";
 import { cityShort } from "@/data/cities";
 

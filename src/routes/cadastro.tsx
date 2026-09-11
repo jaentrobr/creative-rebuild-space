@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProducerCta } from "@/components/producer-cta";
 import { db } from "@/integrations/meu-supabase/client";
-import { maskCpf, maskDate, maskPhone, passwordRules, passwordStrength, validateCpf, validateDate } from "@/lib/format";
+import { maskCpf, maskDate, passwordRules, passwordStrength, validateCpf, validateDate } from "@/lib/format";
 
 const signupSchema = z.object({
   redirect: z.string().optional().catch("/"),
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/cadastro")({
   component: SignupPage,
 });
 
-type Step = 1 | 2 | 3 | 4 | "done";
+type Step = 1 | 2 | 3 | "done";
 
 /** Traduz os erros mais comuns do Supabase Auth para português. */
 function mapAuthError(message: string): string {
@@ -69,7 +69,6 @@ function SignupPage() {
     name: "",
     email: "",
     password: "",
-    phone: "",
     birth: "",
     cpf: "",
     acceptedTerms: false,
@@ -82,7 +81,7 @@ function SignupPage() {
   const rules = passwordRules(form.password);
   const strength = passwordStrength(form.password);
   const step1Valid = form.name.trim().length >= 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) && Object.values(rules).every(Boolean) && form.acceptedTerms;
-  const step4Valid = validateDate(form.birth) && validateCpf(form.cpf);
+  const step3Valid = validateDate(form.birth) && validateCpf(form.cpf);
 
   const redirectTo = () => {
     if (search.redirect === "/checkout" && search.event && search.total) {
@@ -114,11 +113,9 @@ function SignupPage() {
       const { error: profileError } = await db.from("profiles").upsert({
         id: userId,
         full_name: form.name,
-        phone: form.phone.replace(/\D/g, "") || null,
         cpf: form.cpf.replace(/\D/g, "") || null,
         birth_date: toIsoDate(form.birth),
         notify_email: true,
-        notify_sms: false,
         onboarding_completed_at: new Date().toISOString(),
       });
       if (profileError) {
@@ -129,9 +126,8 @@ function SignupPage() {
       window.setTimeout(redirectTo, 2000);
     } else {
       // Confirmação de e-mail habilitada: ainda não há sessão para gravar o perfil
-      // (a RLS de profiles exige um usuário autenticado). O restante dos dados
-      // (telefone, CPF, nascimento) deverá ser preenchido em "Minha conta" após
-      // a confirmação do e-mail.
+      // (a RLS de profiles exige um usuário autenticado). CPF e data de nascimento
+      // deverão ser preenchidos em "Minha conta" após a confirmação do e-mail.
       setLoading(false);
       setPendingEmailConfirmation(true);
       setStep("done");
@@ -140,17 +136,17 @@ function SignupPage() {
 
   const next = () => {
     if (step === 1 && !step1Valid) return;
-    if (step === 4 && !step4Valid) return;
-    if (step === 4) {
+    if (step === 3) {
+      if (!step3Valid) return;
       void finishSignup();
       return;
     }
-    setStep((s) => (s === 1 ? 2 : s === 2 ? 3 : 4) as Step);
+    setStep((s) => (s === 1 ? 2 : 3) as Step);
     setError("");
   };
 
   const back = () => {
-    setStep((s) => (s === 2 ? 1 : s === 3 ? 2 : s === 4 ? 3 : 1) as Step);
+    setStep((s) => (s === 3 ? 2 : 1) as Step);
     setError("");
   };
 
@@ -163,13 +159,13 @@ function SignupPage() {
               <button onClick={back} className="flex items-center gap-1 text-sm font-semibold text-primary disabled:opacity-50" disabled={step === 1}>
                 <ArrowLeft className="size-4" /> Voltar
               </button>
-              <span className="text-xs font-bold text-muted-foreground">Etapa {step} de 4</span>
+              <span className="text-xs font-bold text-muted-foreground">Etapa {step} de 3</span>
             </div>
           )}
 
           <div className="mb-6 flex gap-2">
-            {[1, 2, 3, 4].map((value) => (
-              <div key={value} className={`h-2 flex-1 rounded-full ${(step === "done" ? 4 : step) >= value ? "bg-primary" : "bg-muted"}`} />
+            {[1, 2, 3].map((value) => (
+              <div key={value} className={`h-2 flex-1 rounded-full ${(step === "done" ? 3 : step) >= value ? "bg-primary" : "bg-muted"}`} />
             ))}
           </div>
 
@@ -210,19 +206,6 @@ function SignupPage() {
 
           {step === 3 && (
             <>
-              <h1 className="text-center text-3xl font-bold">Seu celular</h1>
-              <p className="mt-2 text-center text-sm text-muted-foreground">Digite seu número com DDD.</p>
-              <div className="mt-5 flex items-center gap-2 rounded-xl border border-input bg-background px-3 py-2">
-                <span className="text-sm font-semibold text-muted-foreground">+55</span>
-                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })} placeholder="(00) 00000-0000" className="border-0 shadow-none focus-visible:ring-0" />
-              </div>
-              <p className="mt-3 text-center text-xs text-muted-foreground">A confirmação do celular por SMS ainda não está disponível.</p>
-              <Button className="mt-5 w-full" onClick={next} disabled={form.phone.replace(/\D/g, "").length < 11}>Continuar</Button>
-            </>
-          )}
-
-          {step === 4 && (
-            <>
               <h1 className="text-center text-3xl font-bold">Finalize seu cadastro</h1>
               <form onSubmit={(e) => { e.preventDefault(); next(); }} className="mt-5 grid gap-3">
                 <Input value={form.birth} onChange={(e) => setForm({ ...form, birth: maskDate(e.target.value) })} placeholder="Data de nascimento (DD/MM/AAAA)" maxLength={10} />
@@ -230,7 +213,7 @@ function SignupPage() {
                 <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: maskCpf(e.target.value) })} placeholder="CPF" maxLength={14} />
                 {form.cpf.length === 14 && !validateCpf(form.cpf) && <p className="text-xs font-semibold text-destructive">CPF inválido. Confira os números.</p>}
                 {error && <p className="text-center text-sm font-semibold text-destructive">{error}</p>}
-                <Button type="submit" disabled={!step4Valid || loading}>
+                <Button type="submit" disabled={!step3Valid || loading}>
                   {loading ? <Loader2 className="size-4 animate-spin" /> : "Concluir cadastro"}
                 </Button>
               </form>

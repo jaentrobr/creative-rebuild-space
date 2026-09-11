@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BadgeCheck, Clock, ShieldCheck, Upload, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { PanelCard, ProducerLayout } from "@/components/producer/producer-layout";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { maskCpf, maskDate, maskPhone, validateCpf, validateDate } from "@/lib/format";
 import { producerActions, useProducer } from "@/lib/producer-store";
+import { useAuth } from "@/lib/auth";
+import { useProducerPrivate, useUpsertProducerPrivate } from "@/lib/producer-queries";
 
 export const Route = createFileRoute("/produtor/verificacao")({
   validateSearch: (search) => z.object({ voltar: z.string().catch("") }).parse(search),
@@ -33,12 +35,21 @@ function Verification() {
   const { voltar } = Route.useSearch();
   const { verification, verificationReason } = useProducer();
   const navigate = useNavigate();
+  const { producer } = useAuth();
+  const { data: producerPrivate } = useProducerPrivate(producer?.id);
+  const savePrivate = useUpsertProducerPrivate(producer?.id);
   const [step, setStep] = useState(0);
   const [personType, setPersonType] = useState<"fisica" | "juridica">("juridica");
-  const [pf, setPf] = useState({ name: "", cpf: "", birth: "", income: "", phone: "", cep: "", address: "", number: "", city: "", state: "" });
+  const [pf, setPf] = useState({ name: "", cpf: "", birth: "", income: "", cep: "", address: "", number: "", city: "", state: "" });
+  const [contactPhone, setContactPhone] = useState("");
   const [pj, setPj] = useState({ cnpj: "", legalName: "", tradeName: "", companyType: "LTDA", revenue: "", cep: "", address: "", number: "", city: "", state: "", ownerName: "", ownerCpf: "", ownerBirth: "" });
   const [docs, setDocs] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const stored = producerPrivate?.contact_phone;
+    if (stored) setContactPhone(maskPhone(stored.replace(/^55/, "")));
+  }, [producerPrivate?.contact_phone]);
 
   const adult = (value: string) => {
     if (!validateDate(value)) return false;
@@ -60,15 +71,23 @@ function Verification() {
     if (personType === "fisica") {
       if (!pf.name || !validateCpf(pf.cpf)) return "Confira o nome completo e o CPF.";
       if (!adult(pf.birth)) return "É preciso ter 18 anos ou mais.";
-      if (!pf.phone || !pf.cep) return "Preencha celular e endereço.";
+      if (!pf.cep) return "Preencha o endereço.";
     } else {
       if (pj.cnpj.replace(/\D/g, "").length !== 14 || !pj.legalName) return "Confira o CNPJ e a razão social.";
       if (!validateCpf(pj.ownerCpf) || !adult(pj.ownerBirth)) return "Confira os dados do responsável (maior de 18 anos).";
     }
+    if (contactPhone.replace(/\D/g, "").length < 10) return "Celular inválido. Use DDD + número";
     return "";
   };
 
-  const submit = () => {
+  const submit = async () => {
+    const digits = contactPhone.replace(/\D/g, "");
+    try {
+      await savePrivate.mutateAsync({ contact_phone: `55${digits}` });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Não foi possível salvar o celular de contato.");
+      return;
+    }
     producerActions.setVerification("Em análise");
     setStep(3);
   };
@@ -99,7 +118,7 @@ function Verification() {
               <div><Label>CPF</Label><Input value={pf.cpf} onChange={(e) => setPf({ ...pf, cpf: maskCpf(e.target.value) })} /></div>
               <div><Label>Data de nascimento</Label><Input value={pf.birth} onChange={(e) => setPf({ ...pf, birth: maskDate(e.target.value) })} placeholder="00/00/0000" /></div>
               <div><Label>Renda mensal</Label><Input value={pf.income} onChange={(e) => setPf({ ...pf, income: e.target.value })} placeholder="R$ 5.000" /></div>
-              <div><Label>Celular</Label><Input value={pf.phone} onChange={(e) => setPf({ ...pf, phone: maskPhone(e.target.value) })} /></div>
+              
               <div><Label>CEP</Label><Input value={pf.cep} onChange={(e) => setPf({ ...pf, cep: e.target.value })} /></div>
               <div><Label>Endereço</Label><Input value={pf.address} onChange={(e) => setPf({ ...pf, address: e.target.value })} /></div>
               <div><Label>Número</Label><Input value={pf.number} onChange={(e) => setPf({ ...pf, number: e.target.value })} /></div>
@@ -129,6 +148,11 @@ function Verification() {
               <div><Label>Responsável — nascimento</Label><Input value={pj.ownerBirth} onChange={(e) => setPj({ ...pj, ownerBirth: maskDate(e.target.value) })} placeholder="00/00/0000" /></div>
             </div>
           )}
+          <div className="mt-4 max-w-sm">
+            <Label>Celular para contato</Label>
+            <Input value={contactPhone} onChange={(e) => setContactPhone(maskPhone(e.target.value))} placeholder="(00) 90000-0000" />
+            <p className="mt-1 text-xs text-muted-foreground">Usado apenas para contato sobre sua conta.</p>
+          </div>
           {error ? <p className="mt-3 text-sm font-semibold text-destructive">{error}</p> : null}
           <div className="mt-4 flex gap-2">
             <Button variant="outline" onClick={() => setStep(0)}>Voltar</Button>
@@ -158,7 +182,7 @@ function Verification() {
           </p>
           <div className="mt-4 flex gap-2">
             <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
-            <Button onClick={submit}>Enviar para análise</Button>
+            <Button onClick={() => void submit()} disabled={savePrivate.isPending}>Enviar para análise</Button>
           </div>
         </PanelCard>
       ) : null}
