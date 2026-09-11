@@ -54,7 +54,7 @@ function EventPage() {
   const fee = total ? Math.max(3.5, total * 0.07) : 0;
   const half = lots.some((lot) => lot.half_price_quota > 0 && (qty[lot.id] ?? 0) > 0);
   const selectedLots = Object.fromEntries(Object.entries(qty).filter(([, value]) => value > 0));
-  const checkoutSearch = { event: slug, lots: JSON.stringify(selectedLots), total, half, ref: promo };
+  const checkoutSearch = { event: slug, lots: JSON.stringify(selectedLots), total, half, ref: promo ?? "" };
 
   if (isLoading) {
     return (
