@@ -140,6 +140,8 @@ function AdminEvents() {
   const [suspendId, setSuspendId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [busyEventId, setBusyEventId] = useState<string | null>(null);
+  const [suspendBusy, setSuspendBusy] = useState(false);
 
   const cities = useMemo(
     () =>
@@ -170,6 +172,7 @@ function AdminEvents() {
   );
 
   const toggleFeatured = async (e: Tables<"events">) => {
+    setBusyEventId(e.id);
     try {
       const { error } = await db
         .from("events")
@@ -185,11 +188,14 @@ function AdminEvents() {
       qc.invalidateQueries({ queryKey: ["admin-events"] });
     } catch (err) {
       toast.error(friendlyError(err as { message?: string }, "Não foi possível atualizar o destaque."));
+    } finally {
+      setBusyEventId(null);
     }
   };
 
   const suspendEvent = async () => {
     if (!suspendId) return;
+    setSuspendBusy(true);
     try {
       const { error } = await db
         .from("events")
@@ -209,10 +215,13 @@ function AdminEvents() {
       qc.invalidateQueries({ queryKey: ["admin-events"] });
     } catch (err) {
       toast.error(friendlyError(err as { message?: string }, "Não foi possível suspender o evento."));
+    } finally {
+      setSuspendBusy(false);
     }
   };
 
   const unsuspendEvent = async (e: Tables<"events">) => {
+    setBusyEventId(e.id);
     try {
       const { error } = await db
         .from("events")
@@ -229,6 +238,8 @@ function AdminEvents() {
       qc.invalidateQueries({ queryKey: ["admin-events"] });
     } catch (err) {
       toast.error(friendlyError(err as { message?: string }, "Não foi possível reativar o evento."));
+    } finally {
+      setBusyEventId(null);
     }
   };
 
@@ -366,15 +377,25 @@ function AdminEvents() {
                       Ver como comprador
                     </Link>
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => toggleFeatured(e)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busyEventId === e.id}
+                    onClick={() => toggleFeatured(e)}
+                  >
                     {e.is_featured ? "Remover destaque" : "Destacar na página inicial"}
                   </Button>
                   {e.status === "suspended" ? (
-                    <Button size="sm" onClick={() => unsuspendEvent(e)}>
+                    <Button size="sm" disabled={busyEventId === e.id} onClick={() => unsuspendEvent(e)}>
                       Reativar evento
                     </Button>
                   ) : (
-                    <Button size="sm" variant="destructive" onClick={() => setSuspendId(e.id)}>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={busyEventId === e.id}
+                      onClick={() => setSuspendId(e.id)}
+                    >
                       Suspender evento
                     </Button>
                   )}
@@ -407,8 +428,8 @@ function AdminEvents() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction disabled={!reason.trim()} onClick={suspendEvent}>
-              Suspender
+            <AlertDialogAction disabled={!reason.trim() || suspendBusy} onClick={suspendEvent}>
+              {suspendBusy ? "Suspendendo…" : "Suspender"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
