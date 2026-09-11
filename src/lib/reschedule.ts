@@ -17,7 +17,7 @@ const RESCHEDULE_ERROR_MESSAGES: Record<string, string> = {
 export function translateRescheduleError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? "");
   const key = Object.keys(RESCHEDULE_ERROR_MESSAGES).find((code) => raw.includes(code));
-  if (key) return RESCHEDULE_ERROR_MESSAGES[key];
+  if (key) return RESCHEDULE_ERROR_MESSAGES[key] ?? raw;
   return raw || "Não foi possível alterar a data do evento.";
 }
 
