@@ -136,12 +136,12 @@ function TicketDetail() {
   const { data: ticket, isLoading, isError } = useTicketDetail(id, user?.id);
   const [confirmRefundOpen, setConfirmRefundOpen] = useState(false);
 
-  const event = ticket?.events ?? null;
-  const isRescheduled = (event?.reschedule_count ?? 0) >= 1;
-  const hasNotStarted = event?.starts_at ? new Date(event.starts_at).getTime() >= Date.now() : false;
+  const eventForHooks = ticket?.events ?? null;
+  const isRescheduled = (eventForHooks?.reschedule_count ?? 0) >= 1;
+  const hasNotStarted = eventForHooks?.starts_at ? new Date(eventForHooks.starts_at).getTime() >= Date.now() : false;
   const showRescheduleBlock = ticket?.status === "valid" && isRescheduled && hasNotStarted;
 
-  const { data: lastReschedule } = useLastReschedule(event?.id, showRescheduleBlock);
+  const { data: lastReschedule } = useLastReschedule(eventForHooks?.id, showRescheduleBlock);
   const { data: choice } = useRescheduleChoice(id, showRescheduleBlock);
 
   const chooseMutation = useMutation({
@@ -201,6 +201,7 @@ function TicketDetail() {
     );
   }
 
+  const event = ticket.events;
   const active = ticket.status === "valid";
   const startsAt = event.starts_at ? new Date(event.starts_at) : null;
 
@@ -251,6 +252,61 @@ function TicketDetail() {
         <Button variant="outline" className="gap-2" disabled title={refundDisabledReason}><RotateCcw className="size-4" /> Solicitar reembolso</Button>
         <Button variant="outline" asChild className="gap-2"><a href={calendarUrl} target="_blank" rel="noreferrer"><CalendarPlus className="size-4" /> Adicionar à agenda</a></Button>
       </div>
+
+      {showRescheduleBlock && (
+        <div className="mt-6 rounded-xl border border-sun bg-sun/30 p-5 text-sm">
+          <p className="font-bold">Data alterada</p>
+          <p className="mt-2">
+            De <strong>{event.previous_starts_at ? shortDateTime(event.previous_starts_at) : "—"}</strong> para{" "}
+            <strong>{event.starts_at ? shortDateTime(event.starts_at) : "—"}</strong>
+          </p>
+          {lastReschedule?.reason && <p className="mt-1 text-muted-foreground">Motivo: {lastReschedule.reason}</p>}
+          <p className="mt-2 text-muted-foreground">Você pode escolher até o início do evento.</p>
+
+          {choice ? (
+            <p className="mt-3 font-semibold">
+              {choice.choice === "keep" ? "Você manteve seu ingresso" : "Você solicitou reembolso para este ingresso"}
+            </p>
+          ) : (
+            <p className="mt-3 text-muted-foreground">Se você não escolher, seu ingresso continua válido para a nova data.</p>
+          )}
+
+          {(!choice || choice.choice === "keep") && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              {!choice && (
+                <Button onClick={() => chooseMutation.mutate("keep")} disabled={chooseMutation.isPending}>
+                  Manter meu ingresso
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setConfirmRefundOpen(true)} disabled={chooseMutation.isPending}>
+                Quero reembolso
+              </Button>
+            </div>
+          )}
+
+          <AlertDialog open={confirmRefundOpen} onOpenChange={setConfirmRefundOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Solicitar reembolso?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Seu ingresso será cancelado e não poderá ser recuperado.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setConfirmRefundOpen(false);
+                    chooseMutation.mutate("refund");
+                  }}
+                >
+                  Confirmar reembolso
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
 
       <div className="mt-6 rounded-xl bg-secondary p-5 text-sm">
         <p className="font-bold">Transferência e reembolso</p>
