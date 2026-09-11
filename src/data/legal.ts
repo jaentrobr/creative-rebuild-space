@@ -1,4 +1,4 @@
-export type LegalSection = { title: string; body: string[] };
+export type LegalSection = { title: string; body: string[]; id?: string };
 
 export const legalNotice = "Versão provisória, sujeita a revisão jurídica.";
 
@@ -105,7 +105,15 @@ export const privacySections: LegalSection[] = [
     ],
   },
   {
-    title: "6. Contato",
+    title: "6. Cookies",
+    id: "cookies",
+    body: [
+      "Usamos cookies essenciais para manter o site funcionando e guardar suas escolhas de navegação.",
+      "Também podemos usar cookies opcionais para entender o uso da plataforma e melhorar sua experiência. Você pode revisar essas permissões nas configurações do navegador.",
+    ],
+  },
+  {
+    title: "7. Contato",
     body: [
       "Para exercer seus direitos ou tirar dúvidas sobre esta política, entre em contato com contato@jaentro.com.br.",
     ],

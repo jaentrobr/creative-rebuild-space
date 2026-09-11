@@ -12,7 +12,7 @@ export function LegalPage({ title, sections }: { title: string; sections: LegalS
       </div>
       <div className="mt-8 space-y-8">
         {sections.map((section) => (
-          <section key={section.title}>
+          <section key={section.title} id={section.id} className="scroll-mt-24">
             <h2 className="text-xl font-bold">{section.title}</h2>
             <div className="mt-2 space-y-2">
               {section.body.map((paragraph, index) => (

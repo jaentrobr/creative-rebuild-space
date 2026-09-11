@@ -4,6 +4,7 @@ Regras: proibido Lovable Cloud; banco criado manualmente via SQL (não criar mig
 service_role nunca no front; papéis sempre de `user_roles`; checkout pago fica para depois (Asaas).
 
 ## Concluído
+- [x] Ajustar banner desktop, aviso de cookies e tipografia do rodapé
 - [x] Banco do usuário verificado (23 tabelas + RPCs)
 - [x] Tipos TypeScript gerados do schema real (`src/integrations/meu-supabase/types.ts`)
 - [x] Cliente tipado (`src/integrations/meu-supabase/client.ts`), `AuthProvider` (`src/lib/auth.tsx`),
