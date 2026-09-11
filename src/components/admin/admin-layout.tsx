@@ -6,6 +6,7 @@ import {
   Menu,
   Settings,
   ShieldCheck,
+  Stethoscope,
   Ticket,
   Undo2,
   UserCircle2,
@@ -54,6 +55,7 @@ const navItems = [
   { to: "/admin/financeiro", label: "Financeiro", icon: Wallet, roles: ["owner", "finance"] },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings, roles: ["owner"] },
   { to: "/admin/equipe", label: "Equipe", icon: ShieldCheck, roles: ["owner"] },
+  { to: "/admin/diagnostico", label: "Diagnóstico", icon: Stethoscope, roles: ["owner"] },
 ] as const satisfies ReadonlyArray<{
   to: string;
   label: string;
