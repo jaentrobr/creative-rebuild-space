@@ -17,7 +17,7 @@ import { brl } from "@/lib/format";
 type TicketTypeRow = Tables<"ticket_types">;
 type EventWithTicketTypes = PublicEvent & { ticket_types?: TicketTypeRow[] };
 
-const searchSchema = z.object({ ref: z.string().catch(""), promo: z.string().catch("") });
+const searchSchema = z.object({ ref: z.string().optional(), promo: z.string().optional() });
 
 export const Route = createFileRoute("/evento/$slug")({
   validateSearch: (search) => searchSchema.parse(search),
