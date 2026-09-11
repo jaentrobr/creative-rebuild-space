@@ -204,7 +204,7 @@ function ManageEvent() {
           ) : null}
         </TabsContent>
 
-        <TabsContent value="participantes" className="mt-4"><Participants eventId={event.id} eventName={event.name} types={types} /></TabsContent>
+        <TabsContent value="participantes" className="mt-4"><Participants eventId={event.id} eventName={event.name} types={types} rescheduleCount={realEvent?.reschedule_count ?? 0} realEventId={realEvent?.id ?? null} /></TabsContent>
         <TabsContent value="cortesias" className="mt-4"><Courtesies eventId={event.id} limit={event.settings.courtesyLimit} types={types} /></TabsContent>
         <TabsContent value="cupons" className="mt-4"><Coupons eventId={event.id} types={types} /></TabsContent>
         <TabsContent value="divulgadores" className="mt-4"><Promoters eventId={event.id} slug={event.slug} /></TabsContent>
