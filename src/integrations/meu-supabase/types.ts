@@ -691,6 +691,7 @@ export type Database = {
           responsible_name: string | null
           responsible_cpf: string | null
           responsible_birth_date: string | null
+          contact_phone: string | null
           monthly_income: number | null
           address: Json | null
           pix_key: string | null
@@ -714,6 +715,7 @@ export type Database = {
           responsible_name?: string | null
           responsible_cpf?: string | null
           responsible_birth_date?: string | null
+          contact_phone?: string | null
           monthly_income?: number | null
           address?: Json | null
           pix_key?: string | null
@@ -737,6 +739,7 @@ export type Database = {
           responsible_name?: string | null
           responsible_cpf?: string | null
           responsible_birth_date?: string | null
+          contact_phone?: string | null
           monthly_income?: number | null
           address?: Json | null
           pix_key?: string | null
@@ -812,13 +815,10 @@ export type Database = {
           id: string
           full_name: string | null
           email: string | null
-          phone: string | null
-          phone_verified_at: string | null
           cpf: string | null
           birth_date: string | null
           avatar_url: string | null
           notify_email: boolean
-          notify_sms: boolean
           onboarding_completed_at: string | null
           created_at: string
           updated_at: string
@@ -827,13 +827,10 @@ export type Database = {
           id?: string
           full_name?: string | null
           email?: string | null
-          phone?: string | null
-          phone_verified_at?: string | null
           cpf?: string | null
           birth_date?: string | null
           avatar_url?: string | null
           notify_email?: boolean
-          notify_sms?: boolean
           onboarding_completed_at?: string | null
           created_at?: string
           updated_at?: string
@@ -842,13 +839,10 @@ export type Database = {
           id?: string
           full_name?: string | null
           email?: string | null
-          phone?: string | null
-          phone_verified_at?: string | null
           cpf?: string | null
           birth_date?: string | null
           avatar_url?: string | null
           notify_email?: boolean
-          notify_sms?: boolean
           onboarding_completed_at?: string | null
           created_at?: string
           updated_at?: string
