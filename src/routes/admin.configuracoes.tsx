@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { db } from "@/integrations/meu-supabase/client";
 import { friendlyError } from "@/lib/friendly-error";
+import { checkUpload, generateFileName } from "@/lib/uploads";
 import type { Tables } from "@/integrations/meu-supabase/types";
 import { useAuth } from "@/lib/auth";
 import { logAudit } from "@/lib/admin-store";
@@ -234,19 +235,18 @@ function AdminSettings() {
   };
 
   const uploadBanner = async (file: File, device: Tables<"home_banners">["device"]) => {
+    const check = await checkUpload(file, "banner");
+    if (!check.ok) {
+      toast.error(check.error);
+      return;
+    }
     try {
       const bucket = "home-banners";
-      const path = `${device}/${Date.now()}-${file.name}`;
+      const path = `${device}/${generateFileName(check.extension, device)}`;
       const { error: uploadError } = await db.storage
         .from(bucket)
-        .upload(path, file, { upsert: true, cacheControl: "3600" });
-      if (uploadError) {
-        throw new Error(
-          /bucket/i.test(uploadError.message)
-            ? `O espaço de armazenamento "${bucket}" ainda não foi configurado no projeto. Fale com o suporte.`
-            : uploadError.message,
-        );
-      }
+        .upload(path, file, { upsert: true, cacheControl: "3600", contentType: check.type });
+      if (uploadError) throw uploadError;
       const { data: pub } = db.storage.from(bucket).getPublicUrl(path);
       const banners = bannersQuery.data ?? [];
       const nextOrder = banners.length > 0 ? Math.max(...banners.map((b) => b.sort_order)) + 1 : 0;

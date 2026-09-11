@@ -13,6 +13,7 @@ const statusLabel: Record<string, string> = {
 export function ManualSearch({ onResult }: { onResult: (result: ScanResult) => void }) {
   const [query, setQuery] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
   useGate();
   const participants = getParticipants();
 
@@ -34,9 +35,15 @@ export function ManualSearch({ onResult }: { onResult: (result: ScanResult) => v
   const confirming = results.find((r) => r.id === confirmId) ?? null;
 
   const doCheckin = async (p: DisplayTicket) => {
+    if (checkingId) return;
     setConfirmId(null);
-    const result = await gateActions.scanCode(p.qrToken);
-    if (result) onResult(result);
+    setCheckingId(p.id);
+    try {
+      const result = await gateActions.scanCode(p.qrToken);
+      if (result) onResult(result);
+    } finally {
+      setCheckingId(null);
+    }
   };
 
   return (
@@ -68,10 +75,11 @@ export function ManualSearch({ onResult }: { onResult: (result: ScanResult) => v
             {p.status === "valid" && (
               <button
                 type="button"
+                disabled={checkingId === p.id}
                 onClick={() => setConfirmId(p.id)}
-                className="mt-3 h-11 w-full rounded-xl bg-violet-500 text-sm font-black"
+                className="mt-3 h-11 w-full rounded-xl bg-violet-500 text-sm font-black disabled:opacity-50"
               >
-                Fazer check-in
+                {checkingId === p.id ? "Verificando…" : "Fazer check-in"}
               </button>
             )}
           </div>
@@ -92,10 +100,11 @@ export function ManualSearch({ onResult }: { onResult: (result: ScanResult) => v
               </button>
               <button
                 type="button"
+                disabled={checkingId === confirming.id}
                 onClick={() => void doCheckin(confirming)}
-                className="h-12 flex-1 rounded-xl bg-emerald-500 font-black text-black"
+                className="h-12 flex-1 rounded-xl bg-emerald-500 font-black text-black disabled:opacity-50"
               >
-                Confirmar
+                {checkingId === confirming.id ? "Enviando…" : "Confirmar"}
               </button>
             </div>
           </div>

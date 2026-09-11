@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Download, Package } from "lucide-react";
+import { ChevronDown, Download, Loader2, Package } from "lucide-react";
+import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -138,9 +140,10 @@ function OrderRow({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const { data: orderTickets } = useOrderTickets(order.id, expanded);
+  const { data: orderTickets, isError: ticketsError } = useOrderTickets(order.id, expanded);
   const tickets = orderTickets ?? [];
   const downloadable = tickets.filter((t) => t.status === "valid" || t.status === "used");
+  const [downloading, setDownloading] = useState(false);
 
   return (
     <div className="rounded-xl border border-border bg-card">
@@ -181,17 +184,35 @@ function OrderRow({
               <span>{brl(Number(order.total))}</span>
             </p>
           </div>
+          {ticketsError && (
+            <p className="text-sm font-semibold text-destructive">
+              Não foi possível carregar os ingressos deste pedido.
+            </p>
+          )}
           {downloadable.length > 0 && (
             <Button
               variant="outline"
               className="w-full gap-2"
+              disabled={downloading}
               onClick={async () => {
-                for (const ticket of downloadable) {
-                  if (ticket.events) await downloadTicketPdf(ticket, ticket.events);
+                setDownloading(true);
+                try {
+                  for (const ticket of downloadable) {
+                    if (ticket.events) await downloadTicketPdf(ticket, ticket.events);
+                  }
+                } catch (error) {
+                  toast.error(friendlyError(error as Error, "Não foi possível gerar o PDF agora."));
+                } finally {
+                  setDownloading(false);
                 }
               }}
             >
-              <Download className="size-4" /> Baixar todos os ingressos (PDF)
+              {downloading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Download className="size-4" />
+              )}
+              Baixar todos os ingressos (PDF)
             </Button>
           )}
           <div className="grid gap-2">

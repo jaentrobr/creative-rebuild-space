@@ -32,10 +32,16 @@ function PortariaPage() {
   const [manualResult, setManualResult] = useState<ScanResult | null>(null);
 
   useEffect(() => {
-    if (gate.signedIn && gate.downloaded && screen === "prepare") {
-      // stay on prepare until user chooses to open scanner
-    }
-  }, [gate.signedIn]);
+    void gateActions.init();
+  }, []);
+
+  if (gate.loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0E0717] text-sm font-bold text-white/60">
+        Carregando…
+      </div>
+    );
+  }
 
   if (!gate.signedIn) {
     return <LoginScreen />;
