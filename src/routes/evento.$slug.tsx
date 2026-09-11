@@ -12,7 +12,7 @@ import { db } from "@/integrations/meu-supabase/client";
 import type { Tables } from "@/integrations/meu-supabase/types";
 import { fetchEventBySlug, lotStatus, type PublicEvent } from "@/lib/queries";
 import { eventFullDate, eventImage } from "@/data/events";
-import { brl } from "@/lib/format";
+import { brl, shortDateTime } from "@/lib/format";
 
 type TicketTypeRow = Tables<"ticket_types">;
 type EventWithTicketTypes = PublicEvent & { ticket_types?: TicketTypeRow[] };
@@ -35,6 +35,22 @@ function EventPage() {
     queryKey: ["event", slug],
     queryFn: () => fetchEventBySlug(slug),
     retry: false,
+  });
+
+  const { data: lastReschedule } = useQuery({
+    queryKey: ["event-last-reschedule", event?.id],
+    enabled: !!event?.id && (event?.reschedule_count ?? 0) >= 1,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("event_reschedules")
+        .select("*")
+        .eq("event_id", event!.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
   });
 
   useEffect(() => {
@@ -81,6 +97,12 @@ function EventPage() {
   return (
     <>
       <div className="pb-24 lg:pb-0">
+        {(event.reschedule_count ?? 0) >= 1 && event.previous_starts_at && event.starts_at && (
+          <div className="border-b border-sun bg-sun/30 px-4 py-3 text-center text-sm font-semibold text-ink sm:px-6">
+            Data alterada: de {shortDateTime(event.previous_starts_at)} para {shortDateTime(event.starts_at)}
+            {lastReschedule?.reason ? `. Motivo: ${lastReschedule.reason}` : ""}
+          </div>
+        )}
         <div className="relative h-[44vh] min-h-80 overflow-hidden bg-ink">
           <img src={eventImage(event)} alt={`Público de ${event.title}`} width={1200} height={800} className="h-full w-full object-cover opacity-70" />
           <div className="absolute inset-0 bg-linear-to-t from-ink via-transparent to-transparent" />

@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/integrations/meu-supabase/client";
 import type { Tables } from "@/integrations/meu-supabase/types";
 import { eventsSearch } from "@/lib/events-search";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/meus-ingressos/")({
   head: () => ({
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/meus-ingressos/")({
 });
 
 type TicketWithEvent = Tables<"tickets"> & {
-  events: Pick<Tables<"events">, "id" | "slug" | "title" | "banner_url" | "starts_at" | "venue_name" | "city"> | null;
+  events: Pick<Tables<"events">, "id" | "slug" | "title" | "banner_url" | "starts_at" | "venue_name" | "city" | "reschedule_count" | "previous_starts_at"> | null;
   ticket_types: Pick<Tables<"ticket_types">, "id" | "name"> | null;
   lots: Pick<Tables<"lots">, "id" | "name"> | null;
 };
@@ -58,7 +59,7 @@ function useMyTickets(userId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await db
         .from("tickets")
-        .select("*, events(id, slug, title, banner_url, starts_at, venue_name, city), ticket_types(id, name), lots(id, name)")
+        .select("*, events(id, slug, title, banner_url, starts_at, venue_name, city, reschedule_count, previous_starts_at), ticket_types(id, name), lots(id, name)")
         .eq("holder_user_id", userId as string)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -67,7 +68,31 @@ function useMyTickets(userId: string | undefined) {
   });
 }
 
-function TicketRow({ ticket }: { ticket: TicketWithEvent }) {
+function useRescheduleChoices(ticketIds: string[]) {
+  return useQuery({
+    queryKey: ["ticket-reschedule-choices", ticketIds],
+    enabled: ticketIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("ticket_reschedule_choices")
+        .select("ticket_id")
+        .in("ticket_id", ticketIds);
+      if (error) throw error;
+      return new Set((data ?? []).map((row) => row.ticket_id));
+    },
+  });
+}
+
+function isRescheduledUpcomingValid(ticket: TicketWithEvent) {
+  const event = ticket.events;
+  if (!event) return false;
+  if (ticket.status !== "valid") return false;
+  if ((event.reschedule_count ?? 0) < 1) return false;
+  if (!event.starts_at) return false;
+  return new Date(event.starts_at).getTime() >= Date.now();
+}
+
+function TicketRow({ ticket, needsChoice }: { ticket: TicketWithEvent; needsChoice?: boolean }) {
   const event = ticket.events;
   if (!event) return null;
   const date = event.starts_at ? new Date(event.starts_at) : null;
@@ -79,6 +104,9 @@ function TicketRow({ ticket }: { ticket: TicketWithEvent }) {
           <h2 className="line-clamp-2 text-lg font-bold leading-tight">{event.title}</h2>
           <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold ${statusTone[ticket.status]}`}>{statusLabel[ticket.status] ?? ticket.status}</span>
         </div>
+        {isRescheduledUpcomingValid(ticket) && (
+          <Badge variant="outline" className="mt-1 border-sun bg-sun/30 text-ink">Data alterada</Badge>
+        )}
         <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           <CalendarDays className="size-3.5" />
           {date ? date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "Data a confirmar"}
@@ -98,10 +126,20 @@ function TicketsPage() {
   const upcoming = tickets.filter((ticket) => ticket.events?.starts_at && new Date(ticket.events.starts_at).getTime() >= now);
   const past = tickets.filter((ticket) => !ticket.events?.starts_at || new Date(ticket.events.starts_at).getTime() < now);
 
+  const rescheduledTicketIds = tickets.filter(isRescheduledUpcomingValid).map((ticket) => ticket.id);
+  const { data: choices } = useRescheduleChoices(rescheduledTicketIds);
+  const hasPendingChoice = rescheduledTicketIds.some((id) => !choices?.has(id));
+
   return (
     <PageShell className="max-w-3xl">
       <h1 className="text-4xl font-bold sm:text-5xl">Meus ingressos</h1>
       <p className="mt-2 text-muted-foreground">Seus ingressos, com status e QR code para entrada.</p>
+
+      {hasPendingChoice && (
+        <div className="mt-5 rounded-xl border border-sun bg-sun/30 p-4 text-sm font-semibold text-ink">
+          Um evento seu mudou de data. Veja suas opções.
+        </div>
+      )}
 
       {isLoading && (
         <div className="mt-7 grid gap-3">

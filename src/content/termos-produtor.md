@@ -150,7 +150,13 @@
 
 11.2. **Cancelamento:** todos os Compradores terão direito ao reembolso integral, incluindo a Taxa de Serviço, que será custeado exclusivamente pelo Produtor.
 
-11.3. **Adiamento:** a nova data deve ocorrer em até 90 dias da data original. O Comprador poderá manter o ingresso para a nova data ou solicitar reembolso integral, custeado pelo Produtor.
+11.3. **Alteração de data.**
+- (a) Enquanto o Evento não tiver ingressos vendidos ou emitidos, a data pode ser alterada livremente.
+- (b) Após a primeira venda ou emissão, a data do Evento pode ser alterada **uma única vez**, pela Plataforma, desde que o Evento ainda não tenha começado e que a nova data de início seja, no máximo, **90 dias após a data prevista**.
+- (c) A alteração exige a indicação do motivo, que será exibido aos Compradores.
+- (d) Todos os Compradores serão avisados e poderão, até o início do Evento na nova data, optar por manter o ingresso ou solicitar reembolso integral, incluindo a Taxa de Serviço, custeado exclusivamente pelo Produtor.
+- (e) O Comprador que não se manifestar mantém o ingresso válido para a nova data.
+- (f) Não sendo possível realizar o Evento dentro dessas condições, ele deverá ser cancelado, aplicando-se a cláusula 11.2.
 
 11.4. **Alteração relevante:** o Comprador poderá solicitar reembolso integral, custeado pelo Produtor.
 
@@ -301,3 +307,4 @@
 | Prazo para documentos de Chargeback | 5 dias corridos |
 | Prazo para quitar Saldo Negativo | 5 dias úteis após notificação |
 | Aviso de alteração de taxas | 30 dias |
+| Alteração de data do Evento | 1 vez após a primeira venda, com nova data em até 90 dias após a data prevista; comprador pode manter o ingresso ou pedir reembolso integral até o início do Evento |

@@ -1,6 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Copy, Download, PauseCircle, RefreshCw, Share2, XCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarClock, Copy, Download, PauseCircle, RefreshCw, Share2, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
+import { RescheduleDialog } from "@/components/producer/reschedule-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { db } from "@/integrations/meu-supabase/client";
+import { useAuth } from "@/lib/auth";
+import { useEvent, useEventTicketTypes } from "@/lib/producer-queries";
+import { rescheduleDeadline, translateRescheduleError } from "@/lib/reschedule";
 import { PanelCard, ProducerLayout, StatCard, StatusPill } from "@/components/producer/producer-layout";
 import { SalesChart } from "@/components/producer/sales-chart";
 import { Button } from "@/components/ui/button";
@@ -63,6 +70,21 @@ function ManageEvent() {
   const { id } = Route.useParams();
   const store = useProducer();
   const event = store.events.find((item) => item.id === id);
+  const { producer } = useAuth();
+  const { data: realEvent } = useEvent(id);
+  const { data: ticketTypesReal } = useEventTicketTypes(id);
+  const lotsReal = useMemo(() => (ticketTypesReal ?? []).flatMap((t) => t.lots ?? []), [ticketTypesReal]);
+  const soldCount = useMemo(() => lotsReal.reduce((s, l) => s + (l.sold_count ?? 0), 0), [lotsReal]);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const { data: rescheduleSummaryRaw } = useQuery({
+    queryKey: ["reschedule-summary", id],
+    queryFn: async () => {
+      const { data, error } = await db.rpc("get_reschedule_summary", { p_event_id: id as string });
+      if (error) throw error;
+      return data as unknown as { keep_count: number; refund_count: number; pending_count: number };
+    },
+    enabled: !!id && (realEvent?.reschedule_count ?? 0) >= 1,
+  });
 
   if (!event) {
     return (
@@ -77,6 +99,10 @@ function ManageEvent() {
   const capacity = eventCapacity(event.id) || 1;
   const types = initialTicketTypes[event.id] ?? [];
   const advanced = store.advancedEvents[event.id] ?? null;
+
+  const canReschedule = !!realEvent && !["ended", "canceled", "suspended"].includes(realEvent.status);
+  const alreadyRescheduled = (realEvent?.reschedule_count ?? 0) >= 1;
+  const deadline = realEvent ? rescheduleDeadline(realEvent) : null;
 
   return (
     <ProducerLayout
@@ -109,7 +135,7 @@ function ManageEvent() {
         </div>
 
         <TabsContent value="visao" className="mt-4 space-y-4">
-          <Overview eventId={event.id} sold={sold} capacity={capacity} people={people} types={types} />
+          <Overview eventId={event.id} sold={sold} capacity={capacity} people={people} types={types} realEvent={realEvent ?? null} rescheduleSummary={rescheduleSummaryRaw ?? null} />
           <PanelCard title="Controles do evento">
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => producerActions.updateEvent(event.id, { salesPaused: !event.salesPaused })}>
@@ -136,7 +162,30 @@ function ManageEvent() {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
+              {canReschedule ? (
+                alreadyRescheduled ? (
+                  <Button variant="outline" disabled title={`Data já alterada em ${realEvent?.rescheduled_at ? shortDateTime(realEvent.rescheduled_at) : ""}`}>
+                    <CalendarClock className="size-4" /> Data já alterada
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => setRescheduleOpen(true)}>
+                    <CalendarClock className="size-4" /> Alterar data
+                  </Button>
+                )
+              ) : null}
             </div>
+            {canReschedule && alreadyRescheduled && realEvent?.rescheduled_at ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Data já alterada em {shortDateTime(realEvent.rescheduled_at)}. Se o evento não puder acontecer na nova data, será necessário cancelar.
+              </p>
+            ) : null}
+            {canReschedule && !alreadyRescheduled ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {soldCount > 0
+                  ? `Com vendas confirmadas (${soldCount} ingressos), a data só pode ser alterada 1 vez, até ${deadline ? shortDateTime(deadline.toISOString()) : "—"}.`
+                  : "Sem ingressos vendidos: você pode alterar a data livremente."}
+              </p>
+            ) : null}
             {advanced ? (
               <p className="mt-3 rounded-xl bg-sun p-3 text-sm font-bold text-ink">
                 Você já recebeu {brl(advanced.amount)} deste evento de forma antecipada ({advanced.kind.toLowerCase()} em {shortDate(advanced.at)}).
@@ -144,9 +193,18 @@ function ManageEvent() {
               </p>
             ) : null}
           </PanelCard>
+          {realEvent ? (
+            <RescheduleDialog
+              open={rescheduleOpen}
+              onOpenChange={setRescheduleOpen}
+              event={realEvent}
+              lots={lotsReal}
+              producerId={producer?.id}
+            />
+          ) : null}
         </TabsContent>
 
-        <TabsContent value="participantes" className="mt-4"><Participants eventId={event.id} eventName={event.name} types={types} /></TabsContent>
+        <TabsContent value="participantes" className="mt-4"><Participants eventId={event.id} eventName={event.name} types={types} rescheduleCount={realEvent?.reschedule_count ?? 0} realEventId={realEvent?.id ?? null} /></TabsContent>
         <TabsContent value="cortesias" className="mt-4"><Courtesies eventId={event.id} limit={event.settings.courtesyLimit} types={types} /></TabsContent>
         <TabsContent value="cupons" className="mt-4"><Coupons eventId={event.id} types={types} /></TabsContent>
         <TabsContent value="divulgadores" className="mt-4"><Promoters eventId={event.id} slug={event.slug} /></TabsContent>
@@ -159,7 +217,7 @@ function ManageEvent() {
 
 type TypeList = { id: string; name: string; lots: { id: string; name: string; price: number; quantity: number; sold: number }[] }[];
 
-function Overview({ eventId, sold, capacity, people, types }: { eventId: string; sold: number; capacity: number; people: ReturnType<typeof eventParticipants>; types: TypeList }) {
+function Overview({ eventId, sold, capacity, people, types, realEvent, rescheduleSummary }: { eventId: string; sold: number; capacity: number; people: ReturnType<typeof eventParticipants>; types: TypeList; realEvent: import("@/integrations/meu-supabase/types").Tables<"events"> | null; rescheduleSummary: { keep_count: number; refund_count: number; pending_count: number } | null }) {
   const chart = useMemo(() => salesByDay.filter((p) => p.eventId === eventId).map((p) => ({ label: p.label, value: p.value })), [eventId]);
   const pix = people.filter((p) => p.payment === "Pix").length;
   const card = people.length - pix;
@@ -173,6 +231,28 @@ function Overview({ eventId, sold, capacity, people, types }: { eventId: string;
         <StatCard label="Pix / Cartão" value={`${pix} / ${card}`} hint="Vendas por forma de pagamento" />
         <StatCard label="Check-ins" value={`${checkins}/${people.length}`} tone="sun" />
       </div>
+      {realEvent && (realEvent.reschedule_count ?? 0) >= 1 ? (
+        <PanelCard title="Data alterada">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">Data anterior</p>
+              <p className="font-semibold">{realEvent.previous_starts_at ? shortDateTime(realEvent.previous_starts_at) : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">Nova data</p>
+              <p className="font-semibold">{realEvent.starts_at ? shortDateTime(realEvent.starts_at) : "—"}</p>
+            </div>
+          </div>
+          {realEvent.reschedule_reason ? <p className="mt-3 text-sm text-muted-foreground">Motivo: {realEvent.reschedule_reason}</p> : null}
+          {rescheduleSummary ? (
+            <div className="mt-3 flex flex-wrap gap-3 text-sm">
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Mantiveram: {rescheduleSummary.keep_count}</span>
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Pediram reembolso: {rescheduleSummary.refund_count}</span>
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Sem resposta: {rescheduleSummary.pending_count}</span>
+            </div>
+          ) : null}
+        </PanelCard>
+      ) : null}
       <PanelCard title="Vendas por dia"><SalesChart data={chart} /></PanelCard>
       <PanelCard title="Vendidos por tipo e lote">
         <div className="space-y-4">
@@ -194,7 +274,9 @@ function Overview({ eventId, sold, capacity, people, types }: { eventId: string;
   );
 }
 
-function Participants({ eventId, eventName, types }: { eventId: string; eventName: string; types: TypeList }) {
+const CHOICE_LABELS: Record<string, string> = { keep: "Manteve", refund: "Reembolso" };
+
+function Participants({ eventId, eventName, types, rescheduleCount, realEventId }: { eventId: string; eventName: string; types: TypeList; rescheduleCount: number; realEventId: string | null }) {
   const store = useProducer();
   const all = store.participants.filter((p) => p.eventId === eventId);
   const [term, setTerm] = useState("");
@@ -202,6 +284,20 @@ function Participants({ eventId, eventName, types }: { eventId: string; eventNam
   const [status, setStatus] = useState("todos");
   const [half, setHalf] = useState("todos");
   const [checkin, setCheckin] = useState("todos");
+  const [choiceFilter, setChoiceFilter] = useState("todos");
+
+  const showChoice = rescheduleCount >= 1;
+  const { data: choiceRows } = useQuery({
+    queryKey: ["event-reschedule-choices", realEventId],
+    queryFn: async () => {
+      const { data, error } = await db.from("ticket_reschedule_choices").select("ticket_id, choice").eq("event_id", realEventId as string);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: showChoice && !!realEventId,
+  });
+  const choiceByTicket = new Map((choiceRows ?? []).map((row) => [row.ticket_id, row.choice]));
+  const choiceOf = (ticketId: string) => choiceByTicket.get(ticketId) ?? "pending";
 
   const list = all.filter((p) => {
     const text = `${p.name} ${p.cpf} ${p.email}`.toLowerCase();
@@ -210,7 +306,8 @@ function Participants({ eventId, eventName, types }: { eventId: string; eventNam
       (type === "todos" || p.type === type) &&
       (status === "todos" || p.status === status) &&
       (half === "todos" || (half === "sim") === p.half) &&
-      (checkin === "todos" || (checkin === "feito") === p.checkedIn)
+      (checkin === "todos" || (checkin === "feito") === p.checkedIn) &&
+      (!showChoice || choiceFilter === "todos" || choiceOf(p.id) === choiceFilter)
     );
   });
 
@@ -263,12 +360,23 @@ function Participants({ eventId, eventName, types }: { eventId: string; eventNam
             <SelectItem value="nao">Só inteira</SelectItem>
           </SelectContent>
         </Select>
+        {showChoice ? (
+          <Select value={choiceFilter} onValueChange={setChoiceFilter}>
+            <SelectTrigger aria-label="Após alteração"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Após alteração: todos</SelectItem>
+              <SelectItem value="keep">Manteve</SelectItem>
+              <SelectItem value="refund">Reembolso</SelectItem>
+              <SelectItem value="pending">Sem resposta</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
       </div>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="text-xs uppercase text-muted-foreground">
-            <tr>{["Nome", "CPF", "Tipo / lote", "Pagamento", "Status", "Check-in"].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr>
+            <tr>{["Nome", "CPF", "Tipo / lote", "Pagamento", "Status", "Check-in", ...(showChoice ? ["Após alteração"] : [])].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr>
           </thead>
           <tbody>
             {list.slice(0, 60).map((p) => (
@@ -282,6 +390,7 @@ function Participants({ eventId, eventName, types }: { eventId: string; eventNam
                 <td className="py-2 pr-3">{p.payment}{p.installments > 1 ? ` ${p.installments}x` : ""}</td>
                 <td className="py-2 pr-3"><StatusPill status={p.status} /></td>
                 <td className="py-2 pr-3">{p.checkedIn ? "Feito" : "Pendente"}</td>
+                {showChoice ? <td className="py-2 pr-3">{CHOICE_LABELS[choiceOf(p.id)] ?? "Sem resposta"}</td> : null}
               </tr>
             ))}
           </tbody>

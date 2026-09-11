@@ -273,6 +273,11 @@ export type Database = {
           published_at: string | null
           created_at: string
           updated_at: string
+          original_starts_at: string | null
+          previous_starts_at: string | null
+          reschedule_count: number
+          rescheduled_at: string | null
+          reschedule_reason: string | null
         }
         Insert: {
           id?: string
@@ -312,6 +317,11 @@ export type Database = {
           published_at?: string | null
           created_at?: string
           updated_at?: string
+          original_starts_at?: string | null
+          previous_starts_at?: string | null
+          reschedule_count?: number
+          rescheduled_at?: string | null
+          reschedule_reason?: string | null
         }
         Update: {
           id?: string
@@ -351,6 +361,77 @@ export type Database = {
           published_at?: string | null
           created_at?: string
           updated_at?: string
+          original_starts_at?: string | null
+          previous_starts_at?: string | null
+          reschedule_count?: number
+          rescheduled_at?: string | null
+          reschedule_reason?: string | null
+        }
+        Relationships: []
+      }
+      event_reschedules: {
+        Row: {
+          id: string
+          event_id: string
+          old_starts_at: string | null
+          old_ends_at: string | null
+          new_starts_at: string | null
+          new_ends_at: string | null
+          reason: string | null
+          changed_by: string | null
+          notified_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id?: string
+          old_starts_at?: string | null
+          old_ends_at?: string | null
+          new_starts_at?: string | null
+          new_ends_at?: string | null
+          reason?: string | null
+          changed_by?: string | null
+          notified_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          old_starts_at?: string | null
+          old_ends_at?: string | null
+          new_starts_at?: string | null
+          new_ends_at?: string | null
+          reason?: string | null
+          changed_by?: string | null
+          notified_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      ticket_reschedule_choices: {
+        Row: {
+          ticket_id: string
+          event_id: string
+          reschedule_id: string | null
+          user_id: string | null
+          choice: string
+          chosen_at: string
+        }
+        Insert: {
+          ticket_id?: string
+          event_id?: string
+          reschedule_id?: string | null
+          user_id?: string | null
+          choice?: string
+          chosen_at?: string
+        }
+        Update: {
+          ticket_id?: string
+          event_id?: string
+          reschedule_id?: string | null
+          user_id?: string | null
+          choice?: string
+          chosen_at?: string
         }
         Relationships: []
       }
@@ -1042,6 +1123,8 @@ export type Database = {
     Views: { [_ in never]: never }
     Functions: {
       become_producer: { Args: { p_display_name: string }; Returns: Json }
+      choose_reschedule_option: { Args: { p_ticket_id: string, p_choice: string }; Returns: Json }
+      get_reschedule_summary: { Args: { p_event_id: string }; Returns: Json }
       can_see_finance: { Args: { _user_id: string }; Returns: Json }
       checkin_ticket: { Args: { p_device_id?: string, p_event_id: string, p_qr_token: string, p_scanned_at?: string, p_was_offline?: boolean }; Returns: Json }
       get_checkin_list: { Args: { p_event_id: string }; Returns: Json }
@@ -1078,7 +1161,7 @@ export type Database = {
       payout_method: "pix" | "ted"
       person_type: "pf" | "pj"
       process_status: "requested" | "processing" | "done" | "failed" | "rejected"
-      refund_rule: "withdrawal_7d" | "cancellation_fee" | "event_canceled" | "admin"
+      refund_rule: "withdrawal_7d" | "cancellation_fee" | "event_canceled" | "event_rescheduled" | "admin"
       ticket_status: "valid" | "used" | "transferred" | "refunded" | "canceled"
       verification_status: "not_started" | "pending" | "approved" | "rejected"
     }

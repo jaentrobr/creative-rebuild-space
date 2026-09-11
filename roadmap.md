@@ -22,3 +22,5 @@ service_role nunca no front; papéis sempre de `user_roles`; checkout pago fica 
 - [ ] 7. Checkout pago via Asaas — fora de escopo por decisão do projeto
 
 - [x] Corrigir todos os erros de typecheck/build
+
+- [ ] v2 alteração de data: corrigir todos os erros de typecheck/build ao final

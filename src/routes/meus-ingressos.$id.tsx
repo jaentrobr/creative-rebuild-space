@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { CalendarPlus, Download, MapPin, Send, RotateCcw, WifiOff } from "lucide-react";
 import { downloadTicketPdf } from "@/lib/ticket-pdf";
@@ -10,7 +12,36 @@ import { RequireAuth } from "@/components/require-auth";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/integrations/meu-supabase/client";
 import type { Tables } from "@/integrations/meu-supabase/types";
-import { brl } from "@/lib/format";
+import { brl, shortDateTime } from "@/lib/format";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+const RESCHEDULE_ERROR_MESSAGES: Record<string, string> = {
+  reschedule_not_allowed_status: "Não é possível alterar a data de um evento encerrado, cancelado ou suspenso",
+  event_already_started: "O evento já começou",
+  reschedule_limit_reached: "A data deste evento já foi alterada uma vez",
+  reschedule_date_in_past: "Escolha uma data futura",
+  reschedule_too_far: "A nova data deve ser em até 90 dias após a data prevista",
+  reschedule_reason_required: "Informe o motivo da alteração (mínimo 10 caracteres)",
+  ticket_not_valid: "Este ingresso não está mais válido",
+  event_not_rescheduled: "Este evento não teve a data alterada",
+  reschedule_choice_expired: "O prazo para escolher terminou",
+  refund_already_requested: "O reembolso já foi solicitado",
+};
+
+function translateRescheduleError(message: string | undefined | null): string {
+  if (!message) return "Ocorreu um erro. Tente novamente.";
+  const key = Object.keys(RESCHEDULE_ERROR_MESSAGES).find((k) => message.includes(k));
+  return key ? RESCHEDULE_ERROR_MESSAGES[key]! : message;
+}
 
 export const Route = createFileRoute("/meus-ingressos/$id")({
   head: () => ({
@@ -61,10 +92,86 @@ function useTicketDetail(id: string, userId: string | undefined) {
   });
 }
 
+type RescheduleChoiceRow = Tables<"ticket_reschedule_choices">;
+type EventReschedule = Tables<"event_reschedules">;
+
+function useLastReschedule(eventId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["event-last-reschedule", eventId],
+    enabled: !!eventId && enabled,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("event_reschedules")
+        .select("*")
+        .eq("event_id", eventId as string)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as EventReschedule | null;
+    },
+  });
+}
+
+function useRescheduleChoice(ticketId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["ticket-reschedule-choice", ticketId],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("ticket_reschedule_choices")
+        .select("*")
+        .eq("ticket_id", ticketId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as RescheduleChoiceRow | null;
+    },
+  });
+}
+
 function TicketDetail() {
   const { id } = Route.useParams();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: ticket, isLoading, isError } = useTicketDetail(id, user?.id);
+  const [confirmRefundOpen, setConfirmRefundOpen] = useState(false);
+
+  const eventForHooks = ticket?.events ?? null;
+  const isRescheduled = (eventForHooks?.reschedule_count ?? 0) >= 1;
+  const hasNotStarted = eventForHooks?.starts_at ? new Date(eventForHooks.starts_at).getTime() >= Date.now() : false;
+  const showRescheduleBlock = ticket?.status === "valid" && isRescheduled && hasNotStarted;
+
+  const { data: lastReschedule } = useLastReschedule(eventForHooks?.id, showRescheduleBlock);
+  const { data: choice } = useRescheduleChoice(id, showRescheduleBlock);
+
+  const chooseMutation = useMutation({
+    mutationFn: async (choiceValue: "keep" | "refund") => {
+      const { data, error } = await db.rpc("choose_reschedule_option", {
+        p_ticket_id: id,
+        p_choice: choiceValue,
+      });
+      if (error) throw error;
+      return data as unknown as { choice: string; refund_amount: number };
+    },
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ["ticket-reschedule-choice", id] });
+      void queryClient.invalidateQueries({ queryKey: ["my-ticket", id, user?.id] });
+      void queryClient.invalidateQueries({ queryKey: ["my-tickets", user?.id] });
+      if (data.choice === "refund") {
+        toast.success(
+          data.refund_amount > 0
+            ? `Reembolso de ${brl(Number(data.refund_amount))} solicitado`
+            : "Ingresso cancelado",
+        );
+      } else {
+        toast.success("Você manteve seu ingresso");
+      }
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error(translateRescheduleError(message));
+    },
+  });
 
   if (isLoading) {
     return (
@@ -145,6 +252,61 @@ function TicketDetail() {
         <Button variant="outline" className="gap-2" disabled title={refundDisabledReason}><RotateCcw className="size-4" /> Solicitar reembolso</Button>
         <Button variant="outline" asChild className="gap-2"><a href={calendarUrl} target="_blank" rel="noreferrer"><CalendarPlus className="size-4" /> Adicionar à agenda</a></Button>
       </div>
+
+      {showRescheduleBlock && (
+        <div className="mt-6 rounded-xl border border-sun bg-sun/30 p-5 text-sm">
+          <p className="font-bold">Data alterada</p>
+          <p className="mt-2">
+            De <strong>{event.previous_starts_at ? shortDateTime(event.previous_starts_at) : "—"}</strong> para{" "}
+            <strong>{event.starts_at ? shortDateTime(event.starts_at) : "—"}</strong>
+          </p>
+          {lastReschedule?.reason && <p className="mt-1 text-muted-foreground">Motivo: {lastReschedule.reason}</p>}
+          <p className="mt-2 text-muted-foreground">Você pode escolher até o início do evento.</p>
+
+          {choice ? (
+            <p className="mt-3 font-semibold">
+              {choice.choice === "keep" ? "Você manteve seu ingresso" : "Você solicitou reembolso para este ingresso"}
+            </p>
+          ) : (
+            <p className="mt-3 text-muted-foreground">Se você não escolher, seu ingresso continua válido para a nova data.</p>
+          )}
+
+          {(!choice || choice.choice === "keep") && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              {!choice && (
+                <Button onClick={() => chooseMutation.mutate("keep")} disabled={chooseMutation.isPending}>
+                  Manter meu ingresso
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setConfirmRefundOpen(true)} disabled={chooseMutation.isPending}>
+                Quero reembolso
+              </Button>
+            </div>
+          )}
+
+          <AlertDialog open={confirmRefundOpen} onOpenChange={setConfirmRefundOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Solicitar reembolso?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Seu ingresso será cancelado e não poderá ser recuperado.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setConfirmRefundOpen(false);
+                    chooseMutation.mutate("refund");
+                  }}
+                >
+                  Confirmar reembolso
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
 
       <div className="mt-6 rounded-xl bg-secondary p-5 text-sm">
         <p className="font-bold">Transferência e reembolso</p>
