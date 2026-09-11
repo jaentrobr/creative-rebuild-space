@@ -13,6 +13,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { CookieBar } from "@/components/cookie-bar";
 import { NotFoundState } from "@/components/not-found-state";
 import { ErrorState } from "@/components/error-state";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/auth";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
