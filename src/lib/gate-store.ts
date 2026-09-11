@@ -1,59 +1,50 @@
 import { useSyncExternalStore } from "react";
-import type { GateUser, Participant, ProducerEvent } from "@/data/producer";
-import { getProducerState, producerActions, subscribeProducer } from "@/lib/producer-store";
-import { cancelReasonLabel, fabricateUsedInfo, testCodes, toDisplayTicket, type DisplayTicket } from "@/data/gate";
+import { db } from "@/integrations/meu-supabase/client";
+import type { Tables } from "@/integrations/meu-supabase/types";
+import { normalizeCheckinResponse, normalizeParticipants, type DisplayTicket } from "@/data/gate";
 
 export type ScanResult =
-  | { kind: "granted"; ticket: DisplayTicket; participantId?: string; offline?: boolean }
-  | { kind: "granted_check_doc"; ticket: DisplayTicket; participantId?: string; offline?: boolean }
-  | { kind: "used"; ticket: DisplayTicket; usedAt: string; gateName: string }
-  | { kind: "cancelled"; ticket: DisplayTicket; reason: string }
+  | { kind: "granted"; ticket: DisplayTicket; offline?: boolean }
+  | { kind: "granted_check_doc"; ticket: DisplayTicket; offline?: boolean }
+  | { kind: "already_used"; ticket?: DisplayTicket; usedAt?: string | null }
+  | { kind: "canceled"; ticket?: DisplayTicket }
   | { kind: "not_found"; code: string }
-  | { kind: "wrong_event"; code: string; eventName: string }
-  | { kind: "refused"; ticket: DisplayTicket };
+  | { kind: "other_event"; code: string; eventName?: string | null };
 
-export type HistoryEntry = {
-  id: string;
-  at: string;
-  result: ScanResult;
-  code: string;
-  offline?: boolean;
-};
+export type StaffEvent = { eventId: string; eventTitle: string; displayName: string };
 
-type PendingCheckin = { id: string; participantId: string; code: string; name: string; at: string };
+type PendingCheckin = { localId: string; qrToken: string; scannedAt: string; deviceId: string };
 
 type GateState = {
+  loading: boolean;
   signedIn: boolean;
-  gateUser: GateUser | null;
+  staffEvents: StaffEvent[];
+  selectedEventId: string | null;
   downloading: boolean;
   downloadProgress: number;
   downloaded: boolean;
   downloadedAt: string | null;
-  downloadedCount: number;
+  participants: DisplayTicket[];
   online: boolean;
   lastSync: string | null;
   pending: PendingCheckin[];
-  offlineUsedCodes: Set<string>;
-  history: HistoryEntry[];
-  conflict: { code: string; entries: { at: string; gate: string }[] } | null;
   loginError: string;
   logoutBlocked: string;
 };
 
 let state: GateState = {
+  loading: true,
   signedIn: false,
-  gateUser: null,
+  staffEvents: [],
+  selectedEventId: null,
   downloading: false,
   downloadProgress: 0,
   downloaded: false,
   downloadedAt: null,
-  downloadedCount: 0,
-  online: true,
+  participants: [],
+  online: typeof navigator !== "undefined" ? navigator.onLine : true,
   lastSync: null,
   pending: [],
-  offlineUsedCodes: new Set(),
-  history: [],
-  conflict: null,
   loginError: "",
   logoutBlocked: "",
 };
@@ -74,184 +65,257 @@ export function useGate() {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
-export function getGateEvent(): ProducerEvent | null {
-  if (!state.gateUser) return null;
-  return getProducerState().events.find((e) => e.id === state.gateUser!.eventId) ?? null;
+/** Identificador estável deste aparelho, guardado localmente (não é dado simulado do backend). */
+function deviceId() {
+  if (typeof window === "undefined") return "server";
+  const key = "entro-portaria-device-id";
+  let id = window.localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    window.localStorage.setItem(key, id);
+  }
+  return id;
 }
 
-export function getEventParticipants(): Participant[] {
-  const event = getGateEvent();
-  if (!event) return [];
-  return getProducerState().participants.filter((p) => p.eventId === event.id);
+// ---- IndexedDB: fila offline de check-ins e cache da lista baixada ----
+const DB_NAME = "entro-portaria";
+const DB_VERSION = 1;
+
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const idb = req.result;
+      if (!idb.objectStoreNames.contains("pending")) idb.createObjectStore("pending", { keyPath: "localId" });
+      if (!idb.objectStoreNames.contains("participants")) idb.createObjectStore("participants", { keyPath: "qrToken" });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
-export function getEnteredCounts() {
-  const list = getEventParticipants();
-  return { entered: list.filter((p) => p.status === "Utilizado").length, total: list.length };
+async function idbGetAll<T>(store: string): Promise<T[]> {
+  if (typeof indexedDB === "undefined") return [];
+  const idb = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction(store, "readonly");
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result as T[]);
+    req.onerror = () => reject(req.error);
+  });
 }
 
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-function pushHistory(code: string, result: ScanResult, offline?: boolean) {
-  const entry: HistoryEntry = { id: uid(), at: new Date().toISOString(), result, code, offline: offline ?? false };
-  set({ history: [entry, ...state.history].slice(0, 200) });
+async function idbPut(store: string, value: unknown): Promise<void> {
+  if (typeof indexedDB === "undefined") return;
+  const idb = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction(store, "readwrite");
+    tx.objectStore(store).put(value);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
-function checkInNow(participant: Participant): ScanResult {
-  const ticket = toDisplayTicket(participant);
-  if (!state.online) {
-    set({
-      pending: [...state.pending, { id: uid(), participantId: participant.id, code: participant.code, name: participant.name, at: new Date().toISOString() }],
-      offlineUsedCodes: new Set(state.offlineUsedCodes).add(participant.code),
-    });
-    return participant.half
-      ? { kind: "granted_check_doc", ticket, participantId: participant.id, offline: true }
-      : { kind: "granted", ticket, participantId: participant.id, offline: true };
-  }
-  producerActions.checkInParticipant(participant.id, state.gateUser!.id);
-  return participant.half
-    ? { kind: "granted_check_doc", ticket, participantId: participant.id }
-    : { kind: "granted", ticket, participantId: participant.id };
+async function idbDelete(store: string, key: string): Promise<void> {
+  if (typeof indexedDB === "undefined") return;
+  const idb = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction(store, "readwrite");
+    tx.objectStore(store).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
-function classify(code: string): ScanResult {
-  const test = testCodes.find((t) => t.code === code);
-  if (test) {
-    if (test.kind === "granted" || test.kind === "granted_check_doc") return { kind: test.kind, ticket: test.ticket! };
-    if (test.kind === "used") return { kind: "used", ticket: test.ticket!, usedAt: test.usedAt!, gateName: test.gateName! };
-    if (test.kind === "cancelled") return { kind: "cancelled", ticket: test.ticket!, reason: test.reason! };
-    if (test.kind === "not_found") return { kind: "not_found", code };
-    return { kind: "wrong_event", code, eventName: test.eventName! };
-  }
+async function idbClear(store: string): Promise<void> {
+  if (typeof indexedDB === "undefined") return;
+  const idb = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction(store, "readwrite");
+    tx.objectStore(store).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
 
-  if (state.offlineUsedCodes.has(code)) {
-    const pending = state.pending.find((p) => p.code === code);
-    const st = getProducerState();
-    const participant = st.participants.find((p) => p.code === code);
-    const ticket = participant ? toDisplayTicket(participant) : { name: pending?.name ?? "—", type: "—", lot: "—", half: false, code };
-    return { kind: "used", ticket, usedAt: pending ? new Date(pending.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—", gateName: state.gateUser?.name ?? "—" };
+function classifyLocally(qrToken: string): ScanResult {
+  const participant = state.participants.find((p) => p.qrToken === qrToken);
+  if (!participant) return { kind: "not_found", code: qrToken };
+  if (participant.status !== "valid") {
+    if (participant.status === "used") return { kind: "already_used", ticket: participant };
+    return { kind: "canceled", ticket: participant };
   }
-
-  const event = getGateEvent();
-  const st = getProducerState();
-  const participant = st.participants.find((p) => p.code === code);
-  if (!participant) return { kind: "not_found", code };
-  if (!event || participant.eventId !== event.id) {
-    const otherEvent = st.events.find((e) => e.id === participant.eventId);
-    return { kind: "wrong_event", code, eventName: otherEvent?.name ?? "outro evento" };
-  }
-  if (participant.status === "Utilizado") {
-    const info = fabricateUsedInfo(participant.id);
-    return { kind: "used", ticket: toDisplayTicket(participant), usedAt: info.time, gateName: info.gate };
-  }
-  if (participant.status === "Transferido" || participant.status === "Reembolsado") {
-    return { kind: "cancelled", ticket: toDisplayTicket(participant), reason: cancelReasonLabel(participant.status) };
-  }
-  return checkInNow(participant);
+  return participant.half ? { kind: "granted_check_doc", ticket: participant, offline: true } : { kind: "granted", ticket: participant, offline: true };
 }
 
 export const gateActions = {
-  login(username: string, password: string) {
-    const user = getProducerState().gateUsers.find((g) => g.username === username.trim() && g.password === password && g.active);
-    if (!user) {
-      set({ loginError: "Usuário ou senha inválidos." });
+  async init() {
+    const { data } = await db.auth.getSession();
+    if (data.session?.user) {
+      await gateActions.loadStaffEvents(data.session.user.id);
+    }
+    const pending = await idbGetAll<PendingCheckin>("pending");
+    const participants = await idbGetAll<DisplayTicket>("participants");
+    set({ loading: false, signedIn: !!data.session?.user, pending, participants, downloaded: participants.length > 0 });
+  },
+
+  async loadStaffEvents(userId: string) {
+    const { data: staffRows, error } = await db
+      .from("event_staff")
+      .select("event_id, display_name, is_active")
+      .eq("user_id", userId)
+      .eq("is_active", true);
+    if (error || !staffRows?.length) {
+      set({ staffEvents: [], signedIn: !!staffRows });
+      return;
+    }
+    const eventIds = staffRows.map((r) => r.event_id);
+    const { data: eventRows } = await db.from("events").select("id, title").in("id", eventIds);
+    const staffEvents: StaffEvent[] = staffRows.map((r) => ({
+      eventId: r.event_id,
+      eventTitle: eventRows?.find((e) => e.id === r.event_id)?.title ?? "Evento",
+      displayName: r.display_name,
+    }));
+    set({ signedIn: true, staffEvents, selectedEventId: staffEvents[0]?.eventId ?? null });
+  },
+
+  async login(email: string, password: string) {
+    set({ loginError: "" });
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error || !data.user) {
+      set({ loginError: "E-mail ou senha inválidos." });
       return false;
     }
-    set({ signedIn: true, gateUser: user, loginError: "" });
+    await gateActions.loadStaffEvents(data.user.id);
+    if (state.staffEvents.length === 0) {
+      set({ loginError: "Esta conta não é equipe de portaria de nenhum evento ativo." });
+      await db.auth.signOut();
+      set({ signedIn: false });
+      return false;
+    }
     return true;
   },
-  logout() {
+
+  async logout() {
     if (state.pending.length > 0) {
       set({ logoutBlocked: `Você tem ${state.pending.length} check-ins não enviados. Conecte-se à internet antes de sair.` });
       return false;
     }
+    await db.auth.signOut();
+    await idbClear("participants");
     set({
       signedIn: false,
-      gateUser: null,
+      staffEvents: [],
+      selectedEventId: null,
       downloaded: false,
       downloadedAt: null,
       downloadProgress: 0,
-      history: [],
-      pending: [],
-      offlineUsedCodes: new Set(),
+      participants: [],
       logoutBlocked: "",
     });
     return true;
   },
+
   dismissLogoutBlocked() {
     set({ logoutBlocked: "" });
   },
-  downloadList() {
-    const list = getEventParticipants();
-    set({ downloading: true, downloadProgress: 0 });
-    let progress = 0;
-    const step = () => {
-      progress = Math.min(100, progress + 20 + Math.random() * 20);
-      set({ downloadProgress: progress });
-      if (progress >= 100) {
-        set({
-          downloading: false,
-          downloaded: true,
-          downloadedAt: new Date().toISOString(),
-          downloadedCount: list.length,
-        });
-      } else {
-        setTimeout(step, 180);
-      }
-    };
-    setTimeout(step, 180);
+
+  selectEvent(eventId: string) {
+    set({ selectedEventId: eventId, downloaded: false, downloadedAt: null, participants: [] });
   },
-  setOnline(online: boolean) {
-    set({ online });
-    if (online && state.pending.length > 0) {
-      return gateActions.syncPending();
+
+  async downloadList() {
+    if (!state.selectedEventId) return;
+    set({ downloading: true, downloadProgress: 30 });
+    const { data, error } = await db.rpc("get_checkin_list", { p_event_id: state.selectedEventId });
+    if (error) {
+      set({ downloading: false, downloadProgress: 0 });
+      return;
     }
-    return 0;
-  },
-  syncPending() {
-    const count = state.pending.length;
-    if (count === 0) return 0;
-    for (const p of state.pending) {
-      producerActions.checkInParticipant(p.participantId, state.gateUser!.id);
-    }
-    set({ pending: [], lastSync: new Date().toISOString() });
-    return count;
-  },
-  scanCode(code: string) {
-    const trimmed = code.trim();
-    if (!trimmed) return null;
-    const result = classify(trimmed);
-    pushHistory(trimmed, result, "offline" in result ? result.offline : undefined);
-    return result;
-  },
-  manualCheckin(participantId: string) {
-    const st = getProducerState();
-    const participant = st.participants.find((p) => p.id === participantId);
-    if (!participant || participant.status !== "Válido") return null;
-    const result = checkInNow(participant);
-    pushHistory(participant.code, result, "offline" in result ? result.offline : undefined);
-    return result;
-  },
-  refuse(ticket: DisplayTicket) {
-    pushHistory(ticket.code, { kind: "refused", ticket });
-  },
-  simulateConflict() {
-    const list = getEventParticipants().filter((p) => p.status === "Utilizado");
-    const participant = list[0] ?? getEventParticipants()[0];
-    if (!participant) return;
+    const participants = normalizeParticipants(data);
+    await idbClear("participants");
+    for (const p of participants) await idbPut("participants", p);
     set({
-      conflict: {
-        code: participant.code,
-        entries: [
-          { at: "22:41", gate: "Portaria A" },
-          { at: "22:41", gate: "Portaria B" },
-        ],
-      },
+      downloading: false,
+      downloadProgress: 100,
+      downloaded: true,
+      downloadedAt: new Date().toISOString(),
+      participants,
     });
   },
-  dismissConflict() {
-    set({ conflict: null });
+
+  setOnline(online: boolean) {
+    set({ online });
+    if (online) void gateActions.syncPending();
+  },
+
+  async syncPending() {
+    const items = [...state.pending];
+    if (items.length === 0) return 0;
+    let synced = 0;
+    for (const item of items) {
+      const { data, error } = await db.rpc("checkin_ticket", {
+        p_event_id: state.selectedEventId!,
+        p_qr_token: item.qrToken,
+        p_scanned_at: item.scannedAt,
+        p_device_id: item.deviceId,
+        p_was_offline: true,
+      });
+      if (!error) {
+        await idbDelete("pending", item.localId);
+        set({ pending: state.pending.filter((p) => p.localId !== item.localId) });
+        synced += 1;
+        void data;
+      }
+    }
+    set({ lastSync: new Date().toISOString() });
+    return synced;
+  },
+
+  async scanCode(qrToken: string): Promise<ScanResult | null> {
+    const code = qrToken.trim();
+    if (!code || !state.selectedEventId) return null;
+
+    if (!state.online) {
+      const result = classifyLocally(code);
+      if (result.kind === "granted" || result.kind === "granted_check_doc") {
+        const item: PendingCheckin = { localId: crypto.randomUUID(), qrToken: code, scannedAt: new Date().toISOString(), deviceId: deviceId() };
+        await idbPut("pending", item);
+        const participants = state.participants.map((p) => (p.qrToken === code ? { ...p, status: "used" } : p));
+        await idbPut("participants", participants.find((p) => p.qrToken === code));
+        set({ pending: [...state.pending, item], participants });
+      }
+      return result;
+    }
+
+    const { data, error } = await db.rpc("checkin_ticket", {
+      p_event_id: state.selectedEventId,
+      p_qr_token: code,
+      p_scanned_at: new Date().toISOString(),
+      p_device_id: deviceId(),
+      p_was_offline: false,
+    });
+    if (error) return { kind: "not_found", code };
+    const normalized = normalizeCheckinResponse(data);
+    if (normalized.result === "ok") {
+      const ticket = normalized.ticket;
+      const participants = state.participants.map((p) => (p.qrToken === code ? { ...p, status: "used" } : p));
+      set({ participants });
+      return ticket?.half ? { kind: "granted_check_doc", ticket } : { kind: "granted", ticket: ticket! };
+    }
+    if (normalized.result === "already_used") return { kind: "already_used", ticket: normalized.ticket, usedAt: normalized.usedAt };
+    if (normalized.result === "canceled") return { kind: "canceled", ticket: normalized.ticket };
+    if (normalized.result === "other_event") return { kind: "other_event", code, eventName: normalized.otherEventName };
+    return { kind: "not_found", code };
   },
 };
 
-subscribeProducer(() => emit());
+export function getGateEvent(): StaffEvent | null {
+  return state.staffEvents.find((e) => e.eventId === state.selectedEventId) ?? null;
+}
+
+export function getEnteredCounts() {
+  const total = state.participants.length;
+  const entered = state.participants.filter((p) => p.status === "used").length;
+  return { entered, total };
+}
