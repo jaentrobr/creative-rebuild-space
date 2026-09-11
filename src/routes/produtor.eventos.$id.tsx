@@ -135,7 +135,7 @@ function ManageEvent() {
         </div>
 
         <TabsContent value="visao" className="mt-4 space-y-4">
-          <Overview eventId={event.id} sold={sold} capacity={capacity} people={people} types={types} />
+          <Overview eventId={event.id} sold={sold} capacity={capacity} people={people} types={types} realEvent={realEvent ?? null} rescheduleSummary={rescheduleSummaryRaw ?? null} />
           <PanelCard title="Controles do evento">
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => producerActions.updateEvent(event.id, { salesPaused: !event.salesPaused })}>
@@ -217,7 +217,7 @@ function ManageEvent() {
 
 type TypeList = { id: string; name: string; lots: { id: string; name: string; price: number; quantity: number; sold: number }[] }[];
 
-function Overview({ eventId, sold, capacity, people, types }: { eventId: string; sold: number; capacity: number; people: ReturnType<typeof eventParticipants>; types: TypeList }) {
+function Overview({ eventId, sold, capacity, people, types, realEvent, rescheduleSummary }: { eventId: string; sold: number; capacity: number; people: ReturnType<typeof eventParticipants>; types: TypeList; realEvent: import("@/integrations/meu-supabase/types").Tables<"events"> | null; rescheduleSummary: { keep_count: number; refund_count: number; pending_count: number } | null }) {
   const chart = useMemo(() => salesByDay.filter((p) => p.eventId === eventId).map((p) => ({ label: p.label, value: p.value })), [eventId]);
   const pix = people.filter((p) => p.payment === "Pix").length;
   const card = people.length - pix;
@@ -231,6 +231,28 @@ function Overview({ eventId, sold, capacity, people, types }: { eventId: string;
         <StatCard label="Pix / Cartão" value={`${pix} / ${card}`} hint="Vendas por forma de pagamento" />
         <StatCard label="Check-ins" value={`${checkins}/${people.length}`} tone="sun" />
       </div>
+      {realEvent && (realEvent.reschedule_count ?? 0) >= 1 ? (
+        <PanelCard title="Data alterada">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">Data anterior</p>
+              <p className="font-semibold">{realEvent.previous_starts_at ? shortDateTime(realEvent.previous_starts_at) : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">Nova data</p>
+              <p className="font-semibold">{realEvent.starts_at ? shortDateTime(realEvent.starts_at) : "—"}</p>
+            </div>
+          </div>
+          {realEvent.reschedule_reason ? <p className="mt-3 text-sm text-muted-foreground">Motivo: {realEvent.reschedule_reason}</p> : null}
+          {rescheduleSummary ? (
+            <div className="mt-3 flex flex-wrap gap-3 text-sm">
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Mantiveram: {rescheduleSummary.keep_count}</span>
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Pediram reembolso: {rescheduleSummary.refund_count}</span>
+              <span className="rounded-full bg-muted px-3 py-1 font-semibold">Sem resposta: {rescheduleSummary.pending_count}</span>
+            </div>
+          ) : null}
+        </PanelCard>
+      ) : null}
       <PanelCard title="Vendas por dia"><SalesChart data={chart} /></PanelCard>
       <PanelCard title="Vendidos por tipo e lote">
         <div className="space-y-4">
